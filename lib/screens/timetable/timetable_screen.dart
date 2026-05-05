@@ -1,14 +1,14 @@
-import 'package:attendance_tracker/screens/timetable_input_screen.dart';
+import 'package:attendance_tracker/screens/timetable/timetable_input_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
-import '../models/timetable.dart';
-import '../models/subject.dart';
+import '../../models/timetable.dart';
+import '../../models/subject.dart';
 //  SCREENS
 //  SERVICES
-import '../services/database_service.dart';
+import '../../services/database_service.dart';
 //  WIDGETS
-import '../widgets/timetable_block.dart';
+import '../../widgets/timetable_block.dart';
 //------------------------------------------------------------------------------
 
 class TimetableScreen extends StatefulWidget {

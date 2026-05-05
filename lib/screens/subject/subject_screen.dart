@@ -1,14 +1,14 @@
-import 'package:attendance_tracker/screens/add_subject_screen.dart';
+import 'package:attendance_tracker/screens/subject/add_subject_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
-import '../models/subject.dart';
+import '../../models/subject.dart';
 //  SCREENS
-import '../screens/subject_info_screen.dart';
+import 'subject_info_screen.dart';
 //  WIDGETS
-import '../widgets/subject_card.dart';
+import '../../widgets/subject_card.dart';
 //  SERVICES
-import '../services/database_service.dart';
+import '../../services/database_service.dart';
 //------------------------------------------------------------
 
 class SubjectScreen extends StatefulWidget {

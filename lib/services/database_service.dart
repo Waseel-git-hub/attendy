@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 //  MODELS
@@ -49,35 +51,88 @@ class DatabaseService {
   }
 
 //-------------------LECTIURES------------------------
-  static List<Lecture> getLecturesForDate(DateTime date) {
-    int weekday = date.weekday;
 
+  static Future<void> generateLecturesForDate(DateTime date) async {
+    int weekday = date.weekday;
+    String dateString = DateFormat('yyyy-MM-dd').format(date);
+
+    // Get the templates for this day
     List<TimetableEntry> dayTemplate = timetableBox.values
         .where((entry) => entry.dayOfWeek == weekday)
         .toList();
 
-    List<Lecture> results = [];
-
     for (var entry in dayTemplate) {
       String uid =
-          "${DateFormat('yyyy-MM-dd').format(date)}_${entry.subjectId}_${entry.startHour}${entry.startMinute}";
-      Lecture? savedLecture = lectureBox.get(uid);
+          "${dateString}_${entry.subjectId}_${entry.startHour}${entry.startMinute}";
 
-      if (savedLecture != null) {
-        results.add(savedLecture);
-      } else {
-        results.add(Lecture(
-          lectureUID: uid,
-          subjectID: entry.subjectId,
-          date: date,
-          roomNo: entry.roomNo,
-          status: "NONE", // Default status
-        ));
+      if (!lectureBox.containsKey(uid)) {
+        await lectureBox.put(
+            uid,
+            Lecture(
+              lectureUID: uid,
+              subjectID: entry.subjectId,
+              date: date,
+              startHour: entry.startHour,
+              startMinute: entry.startMinute,
+              endHour: entry.endHour,
+              endMinute: entry.endMinute,
+              roomNo: entry.roomNo,
+              status: "NONE",
+            ));
       }
     }
+  }
 
-    // Sort by time so they appear in order on the timeline
-    results.sort((a, b) => a.date.compareTo(b.date));
+  static List<Lecture> getLecturesForDate(DateTime date) {
+    String dateString = DateFormat('yyyy-MM-dd').format(date);
+
+    List<Lecture> results = lectureBox.values.where((lecture) {
+      return DateFormat('yyyy-MM-dd').format(lecture.date) == dateString;
+    }).toList();
+
+    results.sort((a, b) => (a.startHour * 60 + a.startMinute)
+        .compareTo(b.startHour * 60 + b.startMinute));
+
     return results;
+  }
+
+//-------------------TIMETABLE------------------------
+
+  static bool _checkCollision(
+      {required int day,
+      required int start,
+      required int end,
+      dynamic hiveID}) {
+    return timetableBox.values.any((existing) {
+      if (hiveID != null && existing.key == hiveID) return false;
+      if (existing.dayOfWeek != day) return false;
+
+      int exStart = (existing.startHour * 60) + existing.startMinute;
+      int exEnd = (existing.endHour * 60) + existing.endMinute;
+
+      return start < exEnd && end > exStart;
+    });
+  }
+
+  static Future<String?> saveTimetableEntry({
+    required TimetableEntry entry,
+    dynamic hiveKey,
+  }) async {
+    int newStart = (entry.startHour * 60) + entry.startMinute;
+    int newEnd = (entry.endHour * 60) + entry.endMinute;
+
+    if (_checkCollision(day: entry.dayOfWeek, start: newStart, end: newEnd)) {
+      return "Time Clash: Slot already taken!";
+    }
+    try {
+      if (hiveKey != null) {
+        await timetableBox.put(hiveKey, entry);
+      } else {
+        await timetableBox.add(entry);
+      }
+      return null;
+    } catch (e) {
+      return "Database Error: Could not save.";
+    }
   }
 }

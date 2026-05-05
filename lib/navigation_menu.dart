@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 //  SCREENS
 import '../screens/home_screen.dart';
-import '../screens/timetable_screen.dart';
-import '../screens/subject_screen.dart';
+import 'screens/timetable/timetable_screen.dart';
+import '../screens/subject/subject_screen.dart';
 //import '../screens/settings_screen.dart';
 //------------------------------------------------------------------------------
 

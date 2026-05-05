@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 //  MODELS
-import '../models/subject.dart';
+import '../../models/subject.dart';
 //  SERVICES
-import '../services/database_service.dart';
+import '../../services/database_service.dart';
 //------------------------------------------------------------
 
 class AddSubjectScreen extends StatefulWidget {

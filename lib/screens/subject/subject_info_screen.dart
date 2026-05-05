@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 //  MODELS
-import '../models/subject.dart';
+import '../../models/subject.dart';
 //  SCREENS
-import '../screens/add_subject_screen.dart';
+import 'add_subject_screen.dart';
 //  SERVICES
 //  WIDGETS
 //------------------------------------------------------------

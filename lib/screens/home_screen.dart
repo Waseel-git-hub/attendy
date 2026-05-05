@@ -22,16 +22,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<DateTime> _getWeekDates() {
     DateTime now = DateTime.now();
-    // Find the most recent Sunday
-    DateTime lastSunday = now.subtract(Duration(days: now.weekday % 7));
+    DateTime lastSunday = now.subtract(Duration(days: (now.weekday % 7) - 1));
     return List.generate(7, (index) => lastSunday.add(Duration(days: index)));
   }
 
   @override
   Widget build(BuildContext context) {
-    /*  final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-*/
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -48,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final weekDates = _getWeekDates();
     return SliverToBoxAdapter(
       child: Container(
-        height: 90,
+        height: 75,
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
@@ -59,11 +55,13 @@ class _HomeScreenState extends State<HomeScreen> {
             return GestureDetector(
               onTap: () => setState(() => _selectedDate = date),
               child: Container(
-                width: 60,
+                width: 50,
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.indigoAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -89,73 +87,107 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 3. The List: Combining Timeline + LectureCard
   Widget _buildLectureList() {
-    final List<Lecture> lectures =
-        DatabaseService.getLecturesForDate(_selectedDate);
-    if (lectures.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.only(top: 100),
-            child: Text("No classes scheduled",
-                style: TextStyle(color: Colors.white38)),
-          ),
-        ),
-      );
-    }
+    return FutureBuilder(
+      // 1. Trigger the generation first
+      future: DatabaseService.generateLecturesForDate(_selectedDate),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final lecture = lectures[index];
+        // 2. Now that generation is done, fetch the sorted list
+        final List<Lecture> lectures =
+            DatabaseService.getLecturesForDate(_selectedDate);
 
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 1. Time Display (e.g., 09:00)
-                  _buildTimeColumn(lecture),
-
-                  // 2. The Vertical Timeline Bar
-                  _buildTimelineBar(Theme.of(context).colorScheme.primary,
-                      index == lectures.length - 1),
-
-                  const SizedBox(width: 12),
-
-                  // 3. The Lecture Card
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: ValueListenableBuilder(
-                        // We listen to the box so the UI updates when status is saved
-                        valueListenable:
-                            DatabaseService.lectureBox.listenable(),
-                        builder: (context, box, _) {
-                          return LectureCard(lecture: lecture);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
+        if (lectures.isEmpty) {
+          return const SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: 100),
+                child: Text("No classes scheduled",
+                    style: TextStyle(color: Colors.white38)),
               ),
-            );
-          },
-          childCount: lectures.length,
-        ),
-      ),
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final lecture = lectures[index];
+
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 1. Time Display (e.g., 09:00)
+                      _buildTimeColumn(lecture),
+
+                      // 2. The Vertical Timeline Bar
+                      _buildTimelineBar(Theme.of(context).colorScheme.primary,
+                          index == lectures.length - 1),
+
+                      const SizedBox(width: 12),
+
+                      // 3. The Lecture Card
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: ValueListenableBuilder(
+                            // We listen to the box so the UI updates when status is saved
+                            valueListenable:
+                                DatabaseService.lectureBox.listenable(),
+                            builder: (context, box, _) {
+                              return LectureCard(
+                                  lecture: lecture,
+                                  onTap: () {
+                                    print("Lecture Tapped");
+                                  });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              childCount: lectures.length,
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildTimeColumn(Lecture lecture) {
-    // Use the date stored in the lecture object
-    String time = DateFormat('HH:mm').format(lecture.date);
+    final colorScheme = Theme.of(context).colorScheme;
+    String startTime =
+        lecture.startHour.toString() + ":" + lecture.startMinute.toString();
+    String endTime =
+        lecture.endHour.toString() + ":" + lecture.endMinute.toString();
     return SizedBox(
       width: 50,
       child: Padding(
         padding: const EdgeInsets.only(top: 20),
-        child: Text(time,
-            style: const TextStyle(color: Colors.white38, fontSize: 12)),
+        child: Column(
+          children: [
+            const SizedBox(height: 52),
+            Text(startTime,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: 16,
+                )),
+            Text(
+              endTime,
+              style: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -163,8 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimelineBar(Color color, bool isLast) {
     return Column(
       children: [
-        // The line segment above the dot
-        Container(width: 2, height: 20, color: Colors.white10),
+        Container(width: 2, height: 90, color: Colors.white10),
         // The colored node
         Container(
           width: 12,
@@ -192,8 +223,8 @@ class _HomeScreenState extends State<HomeScreen> {
       expandedHeight: 80,
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        title:
-            const Text("Today", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("This Week",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: false,
       ),
     );

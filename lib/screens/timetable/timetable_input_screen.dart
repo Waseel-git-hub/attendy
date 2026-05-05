@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
-import '../models/timetable.dart';
-import '../models/subject.dart';
+import '../../models/timetable.dart';
+import '../../models/subject.dart';
 //  SCREENS
 //  SERVICES
-import '../services/database_service.dart';
+import '../../services/database_service.dart';
 //  WIDGETS
 //------------------------------------------------------------------------------
 
 class AddTimetableScreen extends StatefulWidget {
+  final dynamic hiveKey;
   final int? initialDay;
-  const AddTimetableScreen({super.key, this.initialDay});
+  const AddTimetableScreen({super.key, this.initialDay, this.hiveKey});
 
   @override
   State<AddTimetableScreen> createState() => _AddTimetableScreenState();
@@ -23,7 +24,10 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   dynamic _selectedSubjectId;
   late int _selectedDay;
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 0);
+  late TimeOfDay _endTime = TimeOfDay(
+    hour: (_startTime.hour + 1) % 24, // Wraps around 24 hours
+    minute: _startTime.minute,
+  );
   final TextEditingController _roomController = TextEditingController();
 
   final List<String> _weekdays = [
@@ -224,7 +228,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   void _saveTimetableEntry() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Basic logic validation: End time must be after start time
     double startDouble = _startTime.hour + _startTime.minute / 60.0;
     double endDouble = _endTime.hour + _endTime.minute / 60.0;
 
@@ -235,7 +238,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
       return;
     }
 
-    // Create entry
     final newEntry = TimetableEntry(
       subjectId: _selectedSubjectId,
       dayOfWeek: _selectedDay,
@@ -245,11 +247,12 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
       endMinute: _endTime.minute,
       roomNo: _roomController.text.trim(),
     );
+    final error = await DatabaseService.saveTimetableEntry(
+      entry: newEntry,
+    );
 
-    // Save to Hive
-    await DatabaseService.timetableBox.add(newEntry);
-
-    // Go back
-    Navigator.pop(context);
+    if (error == null) {
+      Navigator.pop(context);
+    }
   }
 }

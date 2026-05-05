@@ -28,9 +28,13 @@ class SubjectBlock extends StatelessWidget {
       left: left,
       width: width,
       height: height,
-      child: GestureDetector(
-        onTap: () {}, // Future: View Info
-        onLongPress: () {}, // Future: Edit
+      child: InkWell(
+        onTap: () {
+          print("${title} pressed");
+        }, // Future: View Info
+        onLongPress: () {
+          print("${title} hold");
+        }, // Future: Edit
         child: Container(
           margin: const EdgeInsets.all(2),
           padding: const EdgeInsets.all(8),
