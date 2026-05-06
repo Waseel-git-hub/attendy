@@ -126,9 +126,10 @@ class LectureCard extends StatelessWidget {
                       isActive: lectureMarked,
                       onTap: () {
                         if (lecture.status == "CANCELLED")
-                          _updateStatus("NONE");
+                          DatabaseService.clearAttendance(lecture);
                         else
-                          _updateStatus("CANCELLED");
+                          DatabaseService.updateAttendance(
+                              lecture: lecture, newStatus: 'CANCELLED');
                       },
                     ),
                     const SizedBox(width: 8),
@@ -140,9 +141,10 @@ class LectureCard extends StatelessWidget {
                       isActive: lectureMarked,
                       onTap: () {
                         if (lecture.status == "ABSENT")
-                          _updateStatus("NONE");
+                          DatabaseService.clearAttendance(lecture);
                         else
-                          _updateStatus("ABSENT");
+                          DatabaseService.updateAttendance(
+                              lecture: lecture, newStatus: 'ABSENT');
                       },
                     ),
                     const SizedBox(width: 8),
@@ -154,9 +156,10 @@ class LectureCard extends StatelessWidget {
                       isActive: lectureMarked,
                       onTap: () {
                         if (lecture.status == "PRESENT")
-                          _updateStatus("NONE");
+                          DatabaseService.clearAttendance(lecture);
                         else
-                          _updateStatus("PRESENT");
+                          DatabaseService.updateAttendance(
+                              lecture: lecture, newStatus: 'PRESENT');
                       },
                     ),
                   ],

@@ -239,10 +239,16 @@ class _TimetableScreenState extends State<TimetableScreen> {
       height: height,
       left: left,
       width: columnWidth - 4,
+      onTap: () {
+        _showAddPrompt(context, entry.dayOfWeek, entry: entry);
+      },
+      onHold: () {},
     );
   }
 
-  void _showAddPrompt(BuildContext context, int dayIndex) {
+  void _showAddPrompt(BuildContext context, int dayIndex,
+      {TimetableEntry? entry}) {
+    final isEditing = entry != null;
     final dayName = [
       "Monday",
       "Tuesday",
@@ -257,29 +263,36 @@ class _TimetableScreenState extends State<TimetableScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1C1C23),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          "Add Class to $dayName?",
-          style: const TextStyle(color: Colors.white),
+          isEditing ? "Edit Class" : "Add Class to $dayName?",
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
+        content: isEditing
+            ? Text("Do you want to modify this lecture?",
+                style: const TextStyle(color: Colors.white70))
+            : null,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child:
+                const Text("Cancel", style: TextStyle(color: Colors.white38)),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context); // Close Dialog
 
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => AddTimetableScreen(
                     initialDay: dayIndex,
+                    prevEntry: entry,
                   ),
                 ),
               );
             },
-            child: const Text("Add"),
+            child: Text(isEditing ? "Edit" : "Add"),
           ),
         ],
       ),

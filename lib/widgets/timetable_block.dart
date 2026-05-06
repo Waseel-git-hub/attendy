@@ -9,6 +9,8 @@ class SubjectBlock extends StatelessWidget {
   final double height; // Calculated based on duration
   final double left; // Calculated based on day (Mon, Tue, etc.)
   final double width;
+  final VoidCallback onTap;
+  final VoidCallback onHold;
 
   const SubjectBlock({
     super.key,
@@ -19,6 +21,8 @@ class SubjectBlock extends StatelessWidget {
     required this.height,
     required this.left,
     required this.width,
+    required this.onTap,
+    required this.onHold,
   });
 
   @override
@@ -29,12 +33,8 @@ class SubjectBlock extends StatelessWidget {
       width: width,
       height: height,
       child: InkWell(
-        onTap: () {
-          print("${title} pressed");
-        }, // Future: View Info
-        onLongPress: () {
-          print("${title} hold");
-        }, // Future: Edit
+        onTap: onTap,
+        onLongPress: onHold,
         child: Container(
           margin: const EdgeInsets.all(2),
           padding: const EdgeInsets.all(8),

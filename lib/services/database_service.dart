@@ -1,10 +1,10 @@
 import 'dart:async';
-
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 //  MODELS
-import '../models/subject.dart';
+import '../models/attendance.dart';
 import '../models/lecture.dart';
+import '../models/subject.dart';
 import '../models/timetable.dart';
 //------------------------------------------------------------------------------
 
@@ -12,6 +12,7 @@ class DatabaseService {
   static late Box<Subject> subjectBox;
   static late Box<Lecture> lectureBox;
   static late Box<TimetableEntry> timetableBox;
+  static late Box<AttendanceCount> attendanceBox;
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -20,11 +21,13 @@ class DatabaseService {
     Hive.registerAdapter(SubjectAdapter());
     Hive.registerAdapter(LectureAdapter());
     Hive.registerAdapter(TimetableEntryAdapter());
+    Hive.registerAdapter(AttendanceAdapter());
 
     // Open Boxes
     subjectBox = await Hive.openBox<Subject>('subjects');
     lectureBox = await Hive.openBox<Lecture>('lectures');
     timetableBox = await Hive.openBox<TimetableEntry>('timetable');
+    attendanceBox = await Hive.openBox<AttendanceCount>('attendanceBox');
   }
 
 //-------------------SUBJECT------------------------
@@ -134,5 +137,79 @@ class DatabaseService {
     } catch (e) {
       return "Database Error: Could not save.";
     }
+  }
+
+//-------------------ATTENDANCE------------------------
+
+  static List<AttendanceCount> getAttendance(Lecture lecture) {
+    final String monthKey = DateFormat('yyyy-MM').format(lecture.date);
+
+    // Define the two keys: the specific month and the overall record
+    final List<String> uids = [
+      "${lecture.subjectID}_$monthKey",
+      "${lecture.subjectID}_overall",
+    ];
+
+    return uids.map((uid) {
+      return attendanceBox.get(uid) ??
+          AttendanceCount(
+            subjectID: lecture.subjectID,
+            monthKey: uid.contains("overall") ? "overall" : monthKey,
+            presentCount: 0,
+            totalCount: 0,
+          );
+    }).toList();
+  }
+
+  static String generateAttendanceUID(dynamic subjectID,
+      {String monthID = 'OVERALL'}) {
+    return "${subjectID}_$monthID";
+  }
+
+  static Future<void> clearAttendance(Lecture lecture) async {
+    final record = getAttendance(lecture);
+    for (var stats in record) {
+      if (lecture.status == "PRESENT") {
+        stats.presentCount--;
+        stats.totalCount--;
+      } else if (lecture.status == "ABSENT") {
+        stats.totalCount--;
+      }
+      final String uid = "${stats.subjectID}_${stats.monthKey}";
+      await attendanceBox.put(uid, stats);
+    }
+    lecture.status = 'NONE';
+    await lecture.save();
+  }
+
+  static Future<void> updateAttendance({
+    required Lecture lecture,
+    required String newStatus,
+  }) async {
+    if (lecture.status != 'NONE') await clearAttendance(lecture);
+
+    // 2. Set and Save the new status immediately
+    lecture.status = newStatus;
+    await lecture.save();
+
+    if (newStatus == 'NONE' || newStatus == 'CANCELLED') {
+      return;
+    }
+
+    final record = getAttendance(lecture);
+    for (var stats in record) {
+      if (newStatus == "PRESENT") {
+        stats.presentCount++;
+        stats.totalCount++;
+      } else if (newStatus == "ABSENT") {
+        stats.totalCount++;
+      }
+      final String uid = "${stats.subjectID}_${stats.monthKey}";
+      await attendanceBox.put(uid, stats);
+    }
+  }
+
+  static void debug(AttendanceCount stats) {
+    print("Total : ${stats.totalCount}\nPresent : ${stats.presentCount}");
   }
 }

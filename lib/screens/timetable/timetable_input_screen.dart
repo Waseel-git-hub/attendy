@@ -10,9 +10,9 @@ import '../../services/database_service.dart';
 //------------------------------------------------------------------------------
 
 class AddTimetableScreen extends StatefulWidget {
-  final dynamic hiveKey;
+  final TimetableEntry? prevEntry;
   final int? initialDay;
-  const AddTimetableScreen({super.key, this.initialDay, this.hiveKey});
+  const AddTimetableScreen({super.key, this.initialDay, this.prevEntry});
 
   @override
   State<AddTimetableScreen> createState() => _AddTimetableScreenState();
@@ -24,10 +24,8 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   dynamic _selectedSubjectId;
   late int _selectedDay;
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  late TimeOfDay _endTime = TimeOfDay(
-    hour: (_startTime.hour + 1) % 24, // Wraps around 24 hours
-    minute: _startTime.minute,
-  );
+  late TimeOfDay _endTime;
+  bool _isEndTimeManual = false;
   final TextEditingController _roomController = TextEditingController();
 
   final List<String> _weekdays = [
@@ -43,8 +41,25 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDay =
-        widget.initialDay ?? 1; // Use passed day or default to Monday
+
+    if (widget.prevEntry != null) {
+      // Fill with existing data
+      _startTime = TimeOfDay(
+          hour: widget.prevEntry!.startHour,
+          minute: widget.prevEntry!.startMinute);
+      _endTime = TimeOfDay(
+          hour: widget.prevEntry!.endHour, minute: widget.prevEntry!.endMinute);
+      _selectedSubjectId = widget.prevEntry!.subjectId;
+      _roomController.text = widget.prevEntry!.roomNo;
+      _isEndTimeManual = true;
+    } else {
+      _selectedDay = widget.initialDay ?? 1;
+      _endTime = _defaultEnd(_startTime);
+    }
+  }
+
+  TimeOfDay _defaultEnd(TimeOfDay start) {
+    return TimeOfDay(hour: (start.hour + 1) % 24, minute: start.minute);
   }
 
   @override
@@ -199,8 +214,15 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
           setState(() {
             if (isStart) {
               _startTime = picked;
+              if (!_isEndTimeManual) {
+                _endTime = TimeOfDay(
+                  hour: (picked.hour + 1) % 24,
+                  minute: picked.minute,
+                );
+              }
             } else {
               _endTime = picked;
+              _isEndTimeManual = true;
             }
           });
         }
