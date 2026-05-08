@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/models/attendance.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 //  WIDGET
@@ -12,11 +13,6 @@ class LectureCard extends StatelessWidget {
   final VoidCallback onTap;
   const LectureCard({super.key, required this.lecture, required this.onTap});
 
-  void _updateStatus(String newStatus) async {
-    lecture.status = newStatus;
-    await DatabaseService.lectureBox.put(lecture.lectureUID, lecture);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -26,9 +22,21 @@ class LectureCard extends StatelessWidget {
     bool lectureMarked = lecture.status != "NONE";
     Color subjectColor = Color(subject!.colorValue);
 
-    String insightText = " itna attend krna hoga abhi";
-    double attendancePercentage = 0.74;
+    final List<AttendanceCount> monthTotalCount =
+        DatabaseService.getAttendance(lecture);
+    AttendanceCount monthCount = monthTotalCount[1];
+    AttendanceCount overallCount = monthTotalCount[0];
 
+    double attendancePercentage = (monthCount.totalCount != 0)
+        ? (monthCount.presentCount / monthCount.totalCount) * 100
+        : 0;
+    int skippable = DatabaseService.requiredLecture(
+        subject.minAttend.toDouble(),
+        monthCount.totalCount,
+        monthCount.presentCount,
+        lecture);
+
+    String insightText = "You need to attend ${skippable} lecture";
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -178,7 +186,7 @@ class LectureCard extends StatelessWidget {
       lineWidth: 4.0,
       percent: attendancePercentage,
       center: Text(
-        "${(attendancePercentage * 100).toInt()}%",
+        "${(attendancePercentage * 100)}%",
         style: const TextStyle(
             color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
       ),

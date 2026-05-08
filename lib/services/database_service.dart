@@ -209,7 +209,17 @@ class DatabaseService {
     }
   }
 
-  static void debug(AttendanceCount stats) {
-    print("Total : ${stats.totalCount}\nPresent : ${stats.presentCount}");
+  static int requiredLecture(
+      double minAttend, int totalCount, int presentCount, Lecture? lecture) {
+    int required;
+    double currentAttend = (presentCount / totalCount) * 100;
+    if (currentAttend < minAttend) {
+      required =
+          ((minAttend * totalCount - presentCount) / (1 - minAttend)).ceil();
+    } else {
+      required =
+          ((presentCount - (minAttend * totalCount)) / minAttend).floor();
+    }
+    return required;
   }
 }
