@@ -55,6 +55,7 @@ class DatabaseService {
 
 //-------------------LECTIURES------------------------
 
+  //Generate Lecture From Timetable
   static Future<void> generateLecturesForDate(DateTime date) async {
     int weekday = date.weekday;
     String dateString = DateFormat('yyyy-MM-dd').format(date);
@@ -86,6 +87,7 @@ class DatabaseService {
     }
   }
 
+  // Get Lecture From DataBase
   static List<Lecture> getLecturesForDate(DateTime date) {
     String dateString = DateFormat('yyyy-MM-dd').format(date);
 
@@ -101,6 +103,7 @@ class DatabaseService {
 
 //-------------------TIMETABLE------------------------
 
+  // Check if Lecture already exists
   static bool _checkCollision(
       {required int day,
       required int start,
@@ -117,6 +120,7 @@ class DatabaseService {
     });
   }
 
+  //
   static Future<String?> saveTimetableEntry({
     required TimetableEntry entry,
     dynamic hiveKey,
@@ -141,33 +145,29 @@ class DatabaseService {
 
 //-------------------ATTENDANCE------------------------
 
-  static List<AttendanceCount> getAttendance(Lecture lecture) {
-    final String monthKey = DateFormat('yyyy-MM').format(lecture.date);
+  static AttendanceCount getAttendance(Lecture lecture, String monthKey) {
+    final String uid =
+        generateAttendanceUID(lecture.subjectID, monthID: monthKey);
 
-    // Define the two keys: the specific month and the overall record
-    final List<String> uids = [
-      "${lecture.subjectID}_$monthKey",
-      "${lecture.subjectID}_overall",
-    ];
-
-    return uids.map((uid) {
-      return attendanceBox.get(uid) ??
-          AttendanceCount(
-            subjectID: lecture.subjectID,
-            monthKey: uid.contains("overall") ? "overall" : monthKey,
-            presentCount: 0,
-            totalCount: 0,
-          );
-    }).toList();
+    return attendanceBox.get(uid) ??
+        AttendanceCount(
+          subjectID: lecture.subjectID,
+          monthKey: monthKey,
+          presentCount: 0,
+          totalCount: 0,
+        );
   }
 
   static String generateAttendanceUID(dynamic subjectID,
-      {String monthID = 'OVERALL'}) {
+      {String monthID = 'Overall'}) {
     return "${subjectID}_$monthID";
   }
 
   static Future<void> clearAttendance(Lecture lecture) async {
-    final record = getAttendance(lecture);
+    final record = [
+      getAttendance(lecture, DateFormat('yyyy-MM').format(lecture.date)),
+      getAttendance(lecture, 'Overall')
+    ];
     for (var stats in record) {
       if (lecture.status == "PRESENT") {
         stats.presentCount--;
@@ -196,7 +196,10 @@ class DatabaseService {
       return;
     }
 
-    final record = getAttendance(lecture);
+    final record = [
+      getAttendance(lecture, DateFormat('yyyy-MM').format(lecture.date)),
+      getAttendance(lecture, 'Overall')
+    ];
     for (var stats in record) {
       if (newStatus == "PRESENT") {
         stats.presentCount++;
@@ -209,17 +212,19 @@ class DatabaseService {
     }
   }
 
-  static int requiredLecture(
-      double minAttend, int totalCount, int presentCount, Lecture? lecture) {
-    int required;
-    double currentAttend = (presentCount / totalCount) * 100;
-    if (currentAttend < minAttend) {
-      required =
-          ((minAttend * totalCount - presentCount) / (1 - minAttend)).ceil();
+  static int requiredLecture(double minAttend, int total, int present) {
+    if (total == 0) return 0;
+
+    double target = minAttend / 100; // Convert 75 to 0.75
+    double current = present / total;
+
+    if (current < target) {
+      // Formula: (Target * Total - Present) / (1 - Target)
+      return ((target * total - present) / (1 - target)).ceil();
     } else {
-      required =
-          ((presentCount - (minAttend * totalCount)) / minAttend).floor();
+      // Formula: (Present - Target * Total) / Target
+      int canSkip = ((present - target * total) / target).floor();
+      return -canSkip;
     }
-    return required;
   }
 }

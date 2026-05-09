@@ -1,9 +1,10 @@
-import 'package:attendance_tracker/models/attendance.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 //  WIDGET
 import '../models/lecture.dart';
 import '../models/subject.dart';
+import '../models/attendance.dart';
 //  SERVICES
 import '../services/database_service.dart';
 //------------------------------------------------------------------------------
@@ -22,21 +23,24 @@ class LectureCard extends StatelessWidget {
     bool lectureMarked = lecture.status != "NONE";
     Color subjectColor = Color(subject!.colorValue);
 
-    final List<AttendanceCount> monthTotalCount =
-        DatabaseService.getAttendance(lecture);
-    AttendanceCount monthCount = monthTotalCount[1];
-    AttendanceCount overallCount = monthTotalCount[0];
+    AttendanceCount monthCount = DatabaseService.getAttendance(
+        lecture, DateFormat('yyyy-MM').format(lecture.date));
+    AttendanceCount overallCount =
+        DatabaseService.getAttendance(lecture, 'Overall');
 
     double attendancePercentage = (monthCount.totalCount != 0)
-        ? (monthCount.presentCount / monthCount.totalCount) * 100
+        ? (monthCount.presentCount / monthCount.totalCount)
         : 0;
     int skippable = DatabaseService.requiredLecture(
         subject.minAttend.toDouble(),
         monthCount.totalCount,
-        monthCount.presentCount,
-        lecture);
+        monthCount.presentCount);
 
-    String insightText = "You need to attend ${skippable} lecture";
+    String insightText = (skippable > 0)
+        ? "Need to attend ${skippable} lecture"
+        : (skippable < 0)
+            ? "Can skip ${-skippable} lecture"
+            : "Have to attend";
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -186,11 +190,11 @@ class LectureCard extends StatelessWidget {
       lineWidth: 4.0,
       percent: attendancePercentage,
       center: Text(
-        "${(attendancePercentage * 100)}%",
+        "${(attendancePercentage * 100).toInt()}%",
         style: const TextStyle(
             color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
       ),
-      progressColor: attendancePercentage < subject.minAttend.toDouble()
+      progressColor: attendancePercentage * 100 < subject.minAttend.toDouble()
           ? Colors.blueAccent
           : Colors.red,
       backgroundColor: Colors.white10,
