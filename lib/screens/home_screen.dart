@@ -58,6 +58,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 50,
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      width: 0.2),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.3)),
+                  ],
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.primary.withOpacity(0.15),
@@ -195,7 +205,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimelineBar(Color color, bool isLast) {
     return Column(
       children: [
-        Container(width: 2, height: 90, color: Colors.white10),
+        Container(
+            width: 2,
+            height: 90,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.15)),
         // The colored node
         Container(
           width: 12,
@@ -210,7 +223,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: Container(
             width: 2,
-            color: isLast ? Colors.transparent : Colors.white10,
+            color: isLast
+                ? Colors.transparent
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
           ),
         ),
       ],

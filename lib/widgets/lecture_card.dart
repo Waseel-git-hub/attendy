@@ -49,12 +49,10 @@ class LectureCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: lectureMarked
-                  ? theme.cardColor
-                  : theme.cardColor.withOpacity(0.7),
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: Colors.white.withOpacity(0.25),
+                color: colorScheme.onSurface.withOpacity(0.3),
                 width: 1.5,
               ),
             ),
@@ -70,6 +68,10 @@ class LectureCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: subjectColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: subjectColor.withOpacity(0.5),
+                          width: 0.8,
+                        ),
                       ),
                       child: Icon(
                           IconData(subject.iconCodePoint,
@@ -85,8 +87,8 @@ class LectureCard extends StatelessWidget {
                         children: [
                           Text(
                             subject.name,
-                            style: const TextStyle(
-                                color: Colors.white,
+                            style: TextStyle(
+                                color: colorScheme.onSurface,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold),
                           ),
@@ -97,32 +99,37 @@ class LectureCard extends StatelessWidget {
                                   lecture.isExtraClass
                                       ? "Extra Lecture"
                                       : "Normal Lecture",
-                                  style: const TextStyle(
-                                      color: Colors.white38, fontSize: 13))
+                                  style: TextStyle(
+                                      color: colorScheme.onSurface
+                                          .withOpacity(0.4),
+                                      fontSize: 13))
                             ],
                           ),
                           const SizedBox(height: 2),
                           Row(
                             children: [
-                              const Icon(Icons.location_on,
-                                  color: Colors.white38, size: 14),
+                              Icon(Icons.location_on,
+                                  color: colorScheme.onSurface.withOpacity(0.6),
+                                  size: 14),
                               Text(" ${lecture.roomNo}",
-                                  style: const TextStyle(
-                                      color: Colors.white38, fontSize: 13)),
+                                  style: TextStyle(
+                                      color: colorScheme.onSurface
+                                          .withOpacity(0.8),
+                                      fontSize: 13)),
                             ],
                           ),
                         ],
                       ),
                     ),
                     // Percentage Ring
-                    circularPercent(attendancePercentage, subject),
+                    circularPercent(attendancePercentage, subject, context),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
                   insightText,
                   style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.8),
+                      color: colorScheme.onSurface.withOpacity(0.7),
                       fontSize: 13,
                       fontWeight: FontWeight.w500),
                 ),
@@ -184,20 +191,23 @@ class LectureCard extends StatelessWidget {
     );
   }
 
-  Widget circularPercent(double attendancePercentage, Subject subject) {
+  Widget circularPercent(
+      double attendancePercentage, Subject subject, BuildContext context) {
     return CircularPercentIndicator(
       radius: 28.0,
       lineWidth: 4.0,
       percent: attendancePercentage,
       center: Text(
         "${(attendancePercentage * 100).toInt()}%",
-        style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+        style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            fontWeight: FontWeight.bold,
+            fontSize: 12),
       ),
-      progressColor: attendancePercentage * 100 < subject.minAttend.toDouble()
+      progressColor: attendancePercentage * 100 > subject.minAttend.toDouble()
           ? Colors.blueAccent
           : Colors.red,
-      backgroundColor: Colors.white10,
+      backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
       circularStrokeCap: CircularStrokeCap.round,
     );
   }

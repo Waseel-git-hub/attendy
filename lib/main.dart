@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'navigation_menu.dart';
 //  SCREENS
 //  SERVICES
@@ -9,11 +10,20 @@ import '../services/AppTheme.dart';
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
   await DatabaseService.init();
 
-  themeNotifier.value = ThemeMode.dark;
+  final settingsBox = await Hive.openBox('settingsBox');
+  final int savedThemeIndex = settingsBox.get(
+    'themeMode',
+    defaultValue: ThemeMode.system.index,
+  );
+  themeNotifier.value = ThemeMode.values[savedThemeIndex];
   AppTheme().init();
-  runApp(MainApp());
+
+  runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
@@ -30,9 +40,10 @@ class MainApp extends StatelessWidget {
             return MaterialApp(
               debugShowCheckedModeBanner: false,
               title: 'Attendance Tracker',
+              theme: AppTheme().lightTheme,
               darkTheme: AppTheme().darkTheme,
               themeMode: currentMode,
-              home: NavigationMenu(),
+              home: const NavigationMenu(),
             );
           },
         );

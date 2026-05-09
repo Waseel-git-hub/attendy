@@ -54,9 +54,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
   @override
   Widget build(BuildContext context) {
-    /*  final theme = Theme.of(context);
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-*/
 
     return Scaffold(
       appBar: AppBar(
@@ -76,9 +75,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStickyTimeBar(),
+                _buildStickyTimeBar(colorScheme.onSurface),
                 Expanded(
-                  child: _buildMainGrid(),
+                  child: _buildMainGrid(colorScheme.onSurface),
                 ),
               ],
             ),
@@ -124,7 +123,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     );
   }
 
-  Widget _buildStickyTimeBar() {
+  Widget _buildStickyTimeBar(Color color) {
     return SingleChildScrollView(
       controller: _timeBarScrollController,
       scrollDirection: Axis.vertical,
@@ -132,8 +131,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
       child: Container(
         width: timeBarWidth,
         decoration: BoxDecoration(
-          border:
-              Border(right: BorderSide(color: Colors.white.withOpacity(0.05))),
+          border: Border(right: BorderSide(color: color.withOpacity(0.35))),
         ),
         child: Column(
           children: List.generate(15, (index) {
@@ -142,7 +140,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
               height: hourHeight,
               child: Text(
                 "${hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}",
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
+                style: TextStyle(color: color, fontSize: 11),
               ),
             );
           }),
@@ -151,7 +149,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     );
   }
 
-  Widget _buildMainGrid() {
+  Widget _buildMainGrid(Color color) {
     return SingleChildScrollView(
       controller: _horizontalController,
       scrollDirection: Axis.horizontal,
@@ -168,9 +166,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
               width: columnWidth * 7,
               child: Stack(
                 children: [
-                  _buildGridLines(),
+                  _buildGridLines(color),
                   ...List.generate(
-                      7, (i) => _buildColumnTouchSensor(context, i + 1)),
+                      7, (i) => _buildColumnTouchSensor(context, i + 1, color)),
                   ...box.values
                       .map((entry) => _buildPositionedBlock(entry))
                       .toList(),
@@ -183,7 +181,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     );
   }
 
-  Widget _buildGridLines() {
+  Widget _buildGridLines(Color color) {
     return Column(
       children: List.generate(
           15,
@@ -191,14 +189,14 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 height: hourHeight,
                 decoration: BoxDecoration(
                   border: Border(
-                      bottom:
-                          BorderSide(color: Colors.white.withOpacity(0.15))),
+                      bottom: BorderSide(color: color.withOpacity(0.15))),
                 ),
               )),
     );
   }
 
-  Widget _buildColumnTouchSensor(BuildContext context, int dayIndex) {
+  Widget _buildColumnTouchSensor(
+      BuildContext context, int dayIndex, Color color) {
     return Positioned(
       left: (dayIndex - 1) * columnWidth,
       top: 0,
@@ -209,8 +207,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
         onTap: () => _showAddPrompt(context, dayIndex),
         child: Container(
           decoration: BoxDecoration(
-            border: Border(
-                right: BorderSide(color: Colors.white.withOpacity(0.03))),
+            border: Border(right: BorderSide(color: color.withOpacity(0.09))),
           ),
         ),
       ),
