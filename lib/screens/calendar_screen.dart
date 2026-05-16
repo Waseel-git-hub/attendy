@@ -76,11 +76,11 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
                     children: lectures.take(3).map((lecture) {
                       // Color dot based on status
                       Color dotColor = Colors.grey;
-                      if (lecture.status == "PRESENT")
+                      if (lecture.status == "Present")
                         dotColor = Colors.greenAccent;
-                      if (lecture.status == "ABSENT")
+                      if (lecture.status == "Absent")
                         dotColor = Colors.redAccent;
-                      if (lecture.status == "CANCELLED")
+                      if (lecture.status == "Cancelled")
                         dotColor = Colors.orangeAccent;
 
                       return Container(
@@ -128,11 +128,11 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
               Text('${subject?.name}', style: TextStyle(color: Colors.white)),
           subtitle: Text(lec.status, style: TextStyle(color: Colors.white38)),
           trailing: Icon(Icons.circle,
-              color: lec.status == "PRESENT"
+              color: lec.status == "Present"
                   ? Colors.greenAccent
-                  : lec.status == "ABSENT"
+                  : lec.status == "Absent"
                       ? Colors.redAccent
-                      : lec.status == "CANCELLED"
+                      : lec.status == "Cancelled"
                           ? Colors.orangeAccent
                           : Colors.grey,
               size: 12),

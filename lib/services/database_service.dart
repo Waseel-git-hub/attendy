@@ -55,6 +55,36 @@ class DatabaseService {
 
 //-------------------LECTIURES------------------------
 
+  static Future<void> lectureInput(
+      dynamic subjectID,
+      DateTime date,
+      int startHour,
+      int startMinute,
+      int endHour,
+      int endMinute,
+      String status,
+      String roomNo,
+      {bool isExtraClass = false,
+      String lectureUID = ''}) async {
+    if (lectureUID == '')
+      lectureUID =
+          "${DateFormat('yyyy-MM-dd').format(date)}_${subjectID}_${startHour}${startMinute}";
+
+    await lectureBox.put(
+        lectureUID,
+        Lecture(
+            lectureUID: lectureUID,
+            subjectID: subjectID,
+            date: date,
+            startHour: startHour,
+            startMinute: startMinute,
+            endHour: endHour,
+            endMinute: endMinute,
+            roomNo: roomNo,
+            status: "Not Marked",
+            isExtraClass: isExtraClass));
+  }
+
   //Generate Lecture From Timetable
   static Future<void> generateLecturesForDate(DateTime date) async {
     int weekday = date.weekday;
@@ -70,19 +100,8 @@ class DatabaseService {
           "${dateString}_${entry.subjectId}_${entry.startHour}${entry.startMinute}";
 
       if (!lectureBox.containsKey(uid)) {
-        await lectureBox.put(
-            uid,
-            Lecture(
-              lectureUID: uid,
-              subjectID: entry.subjectId,
-              date: date,
-              startHour: entry.startHour,
-              startMinute: entry.startMinute,
-              endHour: entry.endHour,
-              endMinute: entry.endMinute,
-              roomNo: entry.roomNo,
-              status: "NONE",
-            ));
+        lectureInput(entry.subjectId, date, entry.startHour, entry.startMinute,
+            entry.endHour, entry.endMinute, 'Not Marked', entry.roomNo);
       }
     }
   }
@@ -169,10 +188,10 @@ class DatabaseService {
       getAttendance(lecture, 'Overall')
     ];
     for (var stats in record) {
-      if (lecture.status == "PRESENT") {
+      if (lecture.status == "Present") {
         stats.presentCount--;
         stats.totalCount--;
-      } else if (lecture.status == "ABSENT") {
+      } else if (lecture.status == "Absent") {
         stats.totalCount--;
       }
       final String uid = "${stats.subjectID}_${stats.monthKey}";
@@ -186,13 +205,13 @@ class DatabaseService {
     required Lecture lecture,
     required String newStatus,
   }) async {
-    if (lecture.status != 'NONE') await clearAttendance(lecture);
+    if (lecture.status != 'Not Marked') await clearAttendance(lecture);
 
     // 2. Set and Save the new status immediately
     lecture.status = newStatus;
     await lecture.save();
 
-    if (newStatus == 'NONE' || newStatus == 'CANCELLED') {
+    if (newStatus == 'Not Marked' || newStatus == 'Cancelled') {
       return;
     }
 
@@ -201,10 +220,10 @@ class DatabaseService {
       getAttendance(lecture, 'Overall')
     ];
     for (var stats in record) {
-      if (newStatus == "PRESENT") {
+      if (newStatus == "Present") {
         stats.presentCount++;
         stats.totalCount++;
-      } else if (newStatus == "ABSENT") {
+      } else if (newStatus == "Absent") {
         stats.totalCount++;
       }
       final String uid = "${stats.subjectID}_${stats.monthKey}";

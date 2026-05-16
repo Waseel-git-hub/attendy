@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 //  WIDGET
@@ -25,12 +26,7 @@ class LectureCard extends StatelessWidget {
 
     AttendanceCount monthCount = DatabaseService.getAttendance(
         lecture, DateFormat('yyyy-MM').format(lecture.date));
-    AttendanceCount overallCount =
-        DatabaseService.getAttendance(lecture, 'Overall');
 
-    double attendancePercentage = (monthCount.totalCount != 0)
-        ? (monthCount.presentCount / monthCount.totalCount)
-        : 0;
     int skippable = DatabaseService.requiredLecture(
         subject.minAttend.toDouble(),
         monthCount.totalCount,
@@ -122,7 +118,7 @@ class LectureCard extends StatelessWidget {
                       ),
                     ),
                     // Percentage Ring
-                    circularPercent(attendancePercentage, subject, context),
+                    circularPercent(lecture, subject, context),
                   ],
                 ),
                 const SizedBox(height: 3),
@@ -141,14 +137,14 @@ class LectureCard extends StatelessWidget {
                       label: "Cancel",
                       icon: Icons.block,
                       color: const Color(0xFFFBBF24),
-                      isSelected: lecture.status == "CANCELLED",
+                      isSelected: lecture.status == "Cancelled",
                       isActive: lectureMarked,
                       onTap: () {
-                        if (lecture.status == "CANCELLED")
+                        if (lecture.status == "Cancelled")
                           DatabaseService.clearAttendance(lecture);
                         else
                           DatabaseService.updateAttendance(
-                              lecture: lecture, newStatus: 'CANCELLED');
+                              lecture: lecture, newStatus: 'Cancelled');
                       },
                     ),
                     const SizedBox(width: 8),
@@ -156,14 +152,14 @@ class LectureCard extends StatelessWidget {
                       label: "Absent",
                       icon: Icons.cancel,
                       color: const Color(0xFFF87171),
-                      isSelected: lecture.status == "ABSENT",
+                      isSelected: lecture.status == "Absent",
                       isActive: lectureMarked,
                       onTap: () {
-                        if (lecture.status == "ABSENT")
+                        if (lecture.status == "Absent")
                           DatabaseService.clearAttendance(lecture);
                         else
                           DatabaseService.updateAttendance(
-                              lecture: lecture, newStatus: 'ABSENT');
+                              lecture: lecture, newStatus: 'Absent');
                       },
                     ),
                     const SizedBox(width: 8),
@@ -171,14 +167,14 @@ class LectureCard extends StatelessWidget {
                       label: "Present",
                       icon: Icons.check_circle,
                       color: const Color(0xFF4ADE80),
-                      isSelected: lecture.status == "PRESENT",
+                      isSelected: lecture.status == "Present",
                       isActive: lectureMarked,
                       onTap: () {
-                        if (lecture.status == "PRESENT")
+                        if (lecture.status == "Present")
                           DatabaseService.clearAttendance(lecture);
                         else
                           DatabaseService.updateAttendance(
-                              lecture: lecture, newStatus: 'PRESENT');
+                              lecture: lecture, newStatus: 'Present');
                       },
                     ),
                   ],
@@ -192,23 +188,41 @@ class LectureCard extends StatelessWidget {
   }
 
   Widget circularPercent(
-      double attendancePercentage, Subject subject, BuildContext context) {
-    return CircularPercentIndicator(
-      radius: 28.0,
-      lineWidth: 4.0,
-      percent: attendancePercentage,
-      center: Text(
-        "${(attendancePercentage * 100).toInt()}%",
-        style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            fontWeight: FontWeight.bold,
-            fontSize: 12),
-      ),
-      progressColor: attendancePercentage * 100 > subject.minAttend.toDouble()
-          ? Colors.blueAccent
-          : Colors.red,
-      backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-      circularStrokeCap: CircularStrokeCap.round,
+      Lecture lecture, Subject subject, BuildContext context) {
+    // 1. Fixed: Added missing 'return' for the builder itself
+    return ValueListenableBuilder(
+      valueListenable: DatabaseService.attendanceBox.listenable(),
+      builder: (context, Box box, _) {
+        final overallStats = DatabaseService.getAttendance(lecture, 'Overall');
+
+        int total = overallStats.totalCount;
+        int present = overallStats.presentCount;
+
+        double livePercentage = total == 0 ? 0.0 : (present / total);
+        double displayPercent = livePercentage * 100;
+        double minTarget = subject.minAttend.toDouble();
+
+        Color progressColor =
+            displayPercent >= minTarget ? Colors.greenAccent : Colors.redAccent;
+
+        return CircularPercentIndicator(
+          radius: 28.0,
+          lineWidth: 4.0,
+          percent: livePercentage,
+          center: Text(
+            "${displayPercent.toInt()}%",
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+          progressColor: progressColor,
+          backgroundColor:
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+          circularStrokeCap: CircularStrokeCap.round,
+        );
+      },
     );
   }
 }

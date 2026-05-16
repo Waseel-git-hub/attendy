@@ -52,6 +52,65 @@ class _TimetableScreenState extends State<TimetableScreen> {
     super.dispose();
   }
 
+  void _showAddPrompt(BuildContext context, int dayIndex,
+      {TimetableEntry? entry}) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isEditing = entry != null;
+    final dayName = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ][dayIndex - 1];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          isEditing ? "Edit Class" : "Add Class to $dayName?",
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: isEditing
+            ? Text("Do you want to modify this lecture?",
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8)))
+            : null,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel",
+                style:
+                    TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close Dialog
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AddTimetableScreen(
+                    initialDay: dayIndex,
+                    prevEntry: entry,
+                  ),
+                ),
+              );
+            },
+            child: Text(isEditing ? "Edit" : "Add"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -240,59 +299,6 @@ class _TimetableScreenState extends State<TimetableScreen> {
         _showAddPrompt(context, entry.dayOfWeek, entry: entry);
       },
       onHold: () {},
-    );
-  }
-
-  void _showAddPrompt(BuildContext context, int dayIndex,
-      {TimetableEntry? entry}) {
-    final isEditing = entry != null;
-    final dayName = [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ][dayIndex - 1];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C23),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          isEditing ? "Edit Class" : "Add Class to $dayName?",
-          style: const TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        content: isEditing
-            ? Text("Do you want to modify this lecture?",
-                style: const TextStyle(color: Colors.white70))
-            : null,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text("Cancel", style: TextStyle(color: Colors.white38)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close Dialog
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddTimetableScreen(
-                    initialDay: dayIndex,
-                    prevEntry: entry,
-                  ),
-                ),
-              );
-            },
-            child: Text(isEditing ? "Edit" : "Add"),
-          ),
-        ],
-      ),
     );
   }
 }

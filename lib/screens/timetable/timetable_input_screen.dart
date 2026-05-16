@@ -43,6 +43,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     super.initState();
 
     if (widget.prevEntry != null) {
+      _selectedDay = widget.prevEntry!.dayOfWeek;
       // Fill with existing data
       _startTime = TimeOfDay(
           hour: widget.prevEntry!.startHour,
@@ -64,11 +65,13 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F12), // Match deep dark theme
       appBar: AppBar(
-        title: const Text("Add Class",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text("Add Class",
+            style: TextStyle(
+                color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -78,21 +81,67 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
           padding: const EdgeInsets.all(20.0),
           children: [
             // 1. Subject Dropdown
-            const Text("Subject",
-                style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 8),
+
             ValueListenableBuilder(
               valueListenable: DatabaseService.subjectBox.listenable(),
               builder: (context, Box<Subject> box, _) {
                 return DropdownButtonFormField<dynamic>(
                   value: _selectedSubjectId,
-                  dropdownColor: const Color(0xFF1C1C23),
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration(),
-                  items: box.values.map((entry) {
-                    return DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(entry.name),
+                  selectedItemBuilder: (BuildContext context) {
+                    return box.values.map((Subject subject) {
+                      return Row(
+                        children: [
+                          Icon(
+                            IconData(subject.iconCodePoint,
+                                fontFamily: 'MaterialIcons'),
+                            color: Color(subject.colorValue),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            subject.name,
+                            style: TextStyle(color: colorScheme.onSurface),
+                          ),
+                        ],
+                      );
+                    }).toList();
+                  },
+
+                  decoration: InputDecoration(
+                    labelText: "Select Subject",
+                    labelStyle: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.8),
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  dropdownColor: colorScheme.surfaceContainerHigh,
+
+                  // RICH DROPDOWN MENU LIST ITEMS
+                  items: box.values.map((Subject subject) {
+                    return DropdownMenuItem<dynamic>(
+                      value: subject.key,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Renders the icon with its unique color inside the menu selector tray
+                          Icon(
+                            IconData(subject.iconCodePoint,
+                                fontFamily: 'MaterialIcons'),
+                            color: Color(subject.colorValue),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            subject.name,
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ],
+                      ),
                     );
                   }).toList(),
                   onChanged: (val) => setState(() => _selectedSubjectId = val),
@@ -101,17 +150,25 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                 );
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
             // 2. Day Dropdown
-            const Text("Day of the Week",
-                style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 8),
             DropdownButtonFormField<int>(
               value: _selectedDay,
-              dropdownColor: const Color(0xFF1C1C23),
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDecoration(),
+              dropdownColor: colorScheme.surfaceContainerHigh,
+              style: TextStyle(color: colorScheme.onSurface, fontSize: 15.5),
+              decoration: InputDecoration(
+                labelText: "Select Day",
+                labelStyle: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.8),
+                ),
+                filled: true,
+                fillColor: colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
               items: List.generate(7, (index) {
                 return DropdownMenuItem(
                   value: index + 1,
@@ -120,7 +177,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
               }),
               onChanged: (val) => setState(() => _selectedDay = val ?? 1),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
 
             // 3. Time Pickers (Start and End)
             Row(
@@ -129,41 +186,45 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Start Time",
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 14)),
-                      const SizedBox(height: 8),
+                      Text("Start Time",
+                          style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.8),
+                              fontSize: 12)),
                       _buildTimeTile(_startTime, true),
                     ],
                   ),
                 ),
-                const SizedBox(width: 15),
+                const SizedBox(width: 25),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("End Time",
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 14)),
-                      const SizedBox(height: 8),
+                      Text("End Time",
+                          style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.8),
+                              fontSize: 12)),
                       _buildTimeTile(_endTime, false),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
-            // 4. Room No
-            const Text("Room Number",
-                style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 8),
             TextFormField(
+              cursorColor: colorScheme.primary,
               controller: _roomController,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDecoration(hint: "e.g. A-302"),
-              validator: (val) => val!.isEmpty ? "Enter a room number" : null,
+              style: TextStyle(color: colorScheme.onSurface),
+              decoration: InputDecoration(
+                fillColor: colorScheme.surfaceContainerHighest,
+                labelText: "Enter Room Number",
+                labelStyle: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.8),
+                ),
+                hintText: 'eg: 517, A-21',
+              ),
             ),
+
             const SizedBox(height: 40),
 
             // 5. Submit Button
@@ -185,25 +246,9 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     );
   }
 
-  // Helper for consistent UI fields
-  InputDecoration _inputDecoration({String? hint}) {
-    return InputDecoration(
-      filled: true,
-      fillColor: const Color(0xFF1C1C23),
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white30, fontSize: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
-      ),
-    );
-  }
-
   Widget _buildTimeTile(TimeOfDay time, bool isStart) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return InkWell(
       onTap: () async {
         final TimeOfDay? picked = await showTimePicker(
@@ -230,17 +275,17 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1C23),
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: colorScheme.onSurface.withOpacity(0.05)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(time.format(context),
-                style: const TextStyle(color: Colors.white, fontSize: 15)),
-            const Icon(Icons.access_time_rounded,
-                color: Colors.white38, size: 18),
+                style: TextStyle(color: colorScheme.onSurface, fontSize: 15)),
+            Icon(Icons.access_time_rounded,
+                color: colorScheme.onSurface.withOpacity(0.6), size: 18),
           ],
         ),
       ),

@@ -26,7 +26,7 @@ class Lecture extends HiveObject {
   int endMinute;
 
   @HiveField(7)
-  String status; // NONE, PRESENT, ABSENT, CANCELLED
+  String status; // Not Marked, Present, Absent, Cancelled
 
   @HiveField(8)
   String roomNo;

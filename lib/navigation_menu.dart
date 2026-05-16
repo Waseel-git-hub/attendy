@@ -56,7 +56,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.calendar_month_rounded), // Book/Subject icon
+                icon: Icon(Icons.grid_on),
                 label: 'Timetable',
               ),
               BottomNavigationBarItem(
