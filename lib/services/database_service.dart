@@ -106,17 +106,50 @@ class DatabaseService {
     }
   }
 
-  // Get Lecture From DataBase
-  static List<Lecture> getLecturesForDate(DateTime date) {
-    String dateString = DateFormat('yyyy-MM-dd').format(date);
+  static List<Lecture> getLectures({
+    dynamic subjectID,
+    DateTime? specificDate,
+    DateTime? filterMonth,
+    String statusFilter = "All",
+    bool latestFirst = false,
+  }) {
+    // 1. All lectures
+    Iterable<Lecture> query = lectureBox.values;
 
-    List<Lecture> results = lectureBox.values.where((lecture) {
-      return DateFormat('yyyy-MM-dd').format(lecture.date) == dateString;
-    }).toList();
+    // 2. Filter by Subject ID
+    if (subjectID != null) {
+      query =
+          query.where((l) => l.subjectID.toString() == subjectID.toString());
+    }
 
-    results.sort((a, b) => (a.startHour * 60 + a.startMinute)
-        .compareTo(b.startHour * 60 + b.startMinute));
+    // 3. Filter by Exact Date
+    if (specificDate != null) {
+      final targetDateStr = DateFormat('yyyy-MM-dd').format(specificDate);
+      query = query.where(
+          (l) => DateFormat('yyyy-MM-dd').format(l.date) == targetDateStr);
+    }
 
+    // 4. Filter by Month/Year
+    if (filterMonth != null && specificDate == null) {
+      final targetYear = filterMonth.year;
+      final targetMonthValue = filterMonth.month;
+      query = query.where(
+          (l) => l.date.year == targetYear && l.date.month == targetMonthValue);
+    }
+
+    // 5. Filter by Attendance Status
+    if (statusFilter != "All") {
+      query = query
+          .where((l) => l.status.toLowerCase() == statusFilter.toLowerCase());
+    }
+    List<Lecture> results = query.toList();
+
+    if (latestFirst) {
+      results.sort((a, b) => (a.startHour * 60 + a.startMinute)
+          .compareTo(b.startHour * 60 + b.startMinute));
+    } else {
+      results.sort((a, b) => (b.date).compareTo(a.date));
+    }
     return results;
   }
 
@@ -164,13 +197,12 @@ class DatabaseService {
 
 //-------------------ATTENDANCE------------------------
 
-  static AttendanceCount getAttendance(Lecture lecture, String monthKey) {
-    final String uid =
-        generateAttendanceUID(lecture.subjectID, monthID: monthKey);
+  static AttendanceCount getAttendance(dynamic subjectID, String monthKey) {
+    final String uid = generateAttendanceUID(subjectID, monthID: monthKey);
 
     return attendanceBox.get(uid) ??
         AttendanceCount(
-          subjectID: lecture.subjectID,
+          subjectID: subjectID,
           monthKey: monthKey,
           presentCount: 0,
           totalCount: 0,
@@ -184,8 +216,9 @@ class DatabaseService {
 
   static Future<void> clearAttendance(Lecture lecture) async {
     final record = [
-      getAttendance(lecture, DateFormat('yyyy-MM').format(lecture.date)),
-      getAttendance(lecture, 'Overall')
+      getAttendance(
+          lecture.subjectID, DateFormat('yyyy-MM').format(lecture.date)),
+      getAttendance(lecture.subjectID, 'Overall')
     ];
     for (var stats in record) {
       if (lecture.status == "Present") {
@@ -216,8 +249,9 @@ class DatabaseService {
     }
 
     final record = [
-      getAttendance(lecture, DateFormat('yyyy-MM').format(lecture.date)),
-      getAttendance(lecture, 'Overall')
+      getAttendance(
+          lecture.subjectID, DateFormat('yyyy-MM').format(lecture.date)),
+      getAttendance(lecture.subjectID, 'Overall')
     ];
     for (var stats in record) {
       if (newStatus == "Present") {

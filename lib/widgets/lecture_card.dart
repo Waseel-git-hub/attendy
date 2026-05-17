@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 //  WIDGET
+import '../widgets/percent_indicator.dart';
+//  MODELS
 import '../models/lecture.dart';
 import '../models/subject.dart';
 import '../models/attendance.dart';
@@ -25,7 +26,7 @@ class LectureCard extends StatelessWidget {
     Color subjectColor = Color(subject!.colorValue);
 
     AttendanceCount monthCount = DatabaseService.getAttendance(
-        lecture, DateFormat('yyyy-MM').format(lecture.date));
+        lecture.subjectID, DateFormat('yyyy-MM').format(lecture.date));
 
     int skippable = DatabaseService.requiredLecture(
         subject.minAttend.toDouble(),
@@ -193,7 +194,8 @@ class LectureCard extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: DatabaseService.attendanceBox.listenable(),
       builder: (context, Box box, _) {
-        final overallStats = DatabaseService.getAttendance(lecture, 'Overall');
+        final overallStats =
+            DatabaseService.getAttendance(lecture.subjectID, 'Overall');
 
         int total = overallStats.totalCount;
         int present = overallStats.presentCount;
@@ -205,22 +207,12 @@ class LectureCard extends StatelessWidget {
         Color progressColor =
             displayPercent >= minTarget ? Colors.greenAccent : Colors.redAccent;
 
-        return CircularPercentIndicator(
-          radius: 28.0,
-          lineWidth: 4.0,
-          percent: livePercentage,
-          center: Text(
-            "${displayPercent.toInt()}%",
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
+        return CustomCircleProgress(
+          percentage: displayPercent,
+          size: 56,
+          fontSize: 12,
+          strokeWidth: 5,
           progressColor: progressColor,
-          backgroundColor:
-              Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-          circularStrokeCap: CircularStrokeCap.round,
         );
       },
     );

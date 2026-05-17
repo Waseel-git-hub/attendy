@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/subject.dart';
 //  SCREENS
 import 'subject_info_screen.dart';
+import '../subject/subject_stats_page.dart';
 //  WIDGETS
 import '../../widgets/subject_card.dart';
 //  SERVICES
@@ -89,7 +90,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (context) =>
-                                SubjectInfoScreen(subject: subject)));
+                                SubjectStatsPage(subjectKey: subject.key)));
                   }
                   if (isSelected) {
                     _toggleSelection(subject.key);

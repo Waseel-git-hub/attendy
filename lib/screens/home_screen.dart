@@ -435,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // 2. Now that generation is done, fetch the sorted list
         final List<Lecture> lectures =
-            DatabaseService.getLecturesForDate(_selectedDate);
+            DatabaseService.getLectures(specificDate: _selectedDate);
 
         if (lectures.isEmpty) {
           return const SliverToBoxAdapter(

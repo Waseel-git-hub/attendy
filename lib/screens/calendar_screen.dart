@@ -37,8 +37,10 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
                   _focusedDay = focusedDay;
                 });
               },
-              // Link your Hive data here
-              eventLoader: DatabaseService.getLecturesForDate,
+              eventLoader: (DateTime selectedDate) =>
+                  DatabaseService.getLectures(
+                specificDate: selectedDate,
+              ),
 
               // --- Styling ---
               calendarStyle: CalendarStyle(
@@ -108,7 +110,7 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
   }
 
   Widget _buildDayDetailList(DateTime date) {
-    final lectures = DatabaseService.getLecturesForDate(date);
+    final lectures = DatabaseService.getLectures(specificDate: date);
     if (lectures.isEmpty)
       return Center(
           child: Text("No lectures this day",
