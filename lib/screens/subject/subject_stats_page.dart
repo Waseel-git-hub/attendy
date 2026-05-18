@@ -1,13 +1,13 @@
 import 'package:attendance_tracker/models/lecture.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
 import '../../models/subject.dart';
 //  SCREENS
 import '../subject/add_subject_screen.dart';
 //  WIDGETS
 import '../../widgets/percent_indicator.dart';
+import '../../widgets/timeline.dart';
 //  SERVICES
 import '../../services/database_service.dart';
 //------------------------------------------------------------
@@ -26,17 +26,40 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
   late TabController _tabController;
   Subject? _subject;
 
+  List<String> _cacheMonthKeys = [];
+  List<Lecture> _allLectures = [];
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _subject = DatabaseService.getSubjectById(widget.subjectKey);
+    _loadSubjectDataEngine();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _loadSubjectDataEngine() {
+    final rawLectures = DatabaseService.getLectures(subjectID: _subject!.key);
+
+    // Unique months
+    final uniqueKeys = rawLectures
+        .map((l) {
+          final date = l.date ?? DateTime.now();
+          return DateFormat('yyyy-MM').format(date);
+        })
+        .toSet()
+        .toList();
+    uniqueKeys.sort((a, b) => b.compareTo(a));
+
+    setState(() {
+      _allLectures = rawLectures;
+      _cacheMonthKeys = uniqueKeys.take(3).toList();
+    });
   }
 
   @override
@@ -90,16 +113,18 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildOverviewTab(context, _subject!),
-          _buildLecturesTab(context, _subject),
-          const Center(child: Text("Analytics Tab View (Coming Next)")),
+          _buildOverviewTab(context, _subject!, theme),
+          _buildLecturesTab(context, _subject!, theme),
+          const Center(
+              child: Text(
+                  "Analytics Tab View (Coming Next)")), //_buildAnalyticsTab(context, _subject!, '2026-05', theme),
         ],
       ),
     );
   }
 
-  Widget _buildOverviewTab(BuildContext context, Subject subject) {
-    final theme = Theme.of(context);
+  Widget _buildOverviewTab(
+      BuildContext context, Subject subject, ThemeData theme) {
     final colorScheme = theme.colorScheme;
 
     final overallStat = DatabaseService.getAttendance(_subject!.key, 'Overall');
@@ -149,9 +174,21 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
             ],
           ),
           const SizedBox(height: 10),
-          _buildMonthlyProgressRow("May", 0.82, theme),
-          _buildMonthlyProgressRow("Apr", 0.70, theme),
-          _buildMonthlyProgressRow("Mar", 0.65, theme),
+          if (_cacheMonthKeys.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.0),
+              child: Center(
+                  child: Text("No monthly data tracked yet.",
+                      style: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.6)))),
+            )
+          else
+            ..._cacheMonthKeys.map((monthKey) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10.0),
+                child: _buildMonthlyProgressRow(theme, monthKey),
+              );
+            }),
           const SizedBox(height: 25),
 
           // D. RECENT HISTORY SHORTLIST VIEW
@@ -166,12 +203,18 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
             ],
           ),
           const SizedBox(height: 10),
-          _buildRecentLectureRow(
-              "16 May, Thu", "Present", Colors.greenAccent.shade400),
-          _buildRecentLectureRow(
-              "14 May, Tue", "Absent", Colors.redAccent.shade200),
-          _buildRecentLectureRow(
-              "12 May, Sun", "Cancelled", Colors.orangeAccent),
+          if (_allLectures.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.0),
+              child: Center(
+                  child: Text("No monthly data tracked yet.",
+                      style: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.6)))),
+            )
+          else
+            ..._allLectures
+                .take(3)
+                .map((lecture) => _buildRecentLectureRow(lecture, theme)),
         ],
       ),
     );
@@ -206,8 +249,13 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     );
   }
 
-  Widget _buildMonthlyProgressRow(
-      String month, double percentage, ThemeData theme) {
+  Widget _buildMonthlyProgressRow(ThemeData theme, String monthKey) {
+    final stats = DatabaseService.getAttendance(_subject!.key, monthKey);
+    double percentage =
+        stats.totalCount > 0 ? stats.presentCount / stats.totalCount : 0.0;
+    DateTime parsedDate = DateFormat('yyyy-MM').parse(monthKey);
+    String month = DateFormat('MMM').format(parsedDate);
+
     return GestureDetector(
       onTap: () {
         print("$month tapped");
@@ -249,9 +297,16 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     );
   }
 
-  Widget _buildRecentLectureRow(
-      String dateStr, String status, Color statusColor) {
-    final theme = Theme.of(context);
+  Widget _buildRecentLectureRow(Lecture lecture, ThemeData theme) {
+    Color statusColor = Colors.orangeAccent;
+    if (lecture.status == 'Present') {
+      statusColor = Colors.greenAccent.shade400;
+    } else if (lecture.status == 'Absent') {
+      statusColor = Colors.redAccent.shade200;
+    }
+
+    String dateStr = DateFormat('dd MMM, E').format(lecture.date);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
@@ -270,14 +325,12 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
             children: [
               Icon(Icons.circle, size: 10, color: statusColor),
               const SizedBox(width: 8),
-              Text(status,
+              Text(lecture.status,
                   style: TextStyle(
                       color: statusColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 14)),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 14, color: Colors.grey),
             ],
           )
         ],
@@ -317,13 +370,16 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 strokeWidth: 12,
                 fontSize: 30,
                 showLabel: true,
-                labelColor: (attendancePercentage < _subject!.minAttend)
-                    ? Colors.orangeAccent
-                    : colorScheme.onSurface,
+                labelColor: (attendancePercentage > _subject!.minAttend ||
+                        totalCount == 0)
+                    ? colorScheme.onSurface
+                    : Colors.orangeAccent,
                 showSubLabel: true,
                 subLabel: 'Overall',
                 progressColor: Colors.greenAccent.shade400,
-                emptyProgressColor: Colors.redAccent.shade200,
+                emptyProgressColor: (totalCount != 0)
+                    ? Colors.redAccent.shade200
+                    : colorScheme.onSurface.withOpacity(0.1),
               ),
               const SizedBox(width: 65),
 
@@ -407,63 +463,53 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
 
 //------------------------------------------------
 
-// Define this variable at the very top of your state class to hold the active filter:
-  String _selectedFilter = "All";
-
-  Widget _buildLecturesTab(BuildContext context, dynamic subject) {
-    final theme = Theme.of(context);
+  Widget _buildLecturesTab(
+      BuildContext context, Subject subject, ThemeData theme) {
     final colorScheme = theme.colorScheme;
-
-    // 1. Fetch filtered history using your ultimate master engine!
-    final lectures = DatabaseService.getLectures(
-      subjectID: subject.key,
-      statusFilter: _selectedFilter,
-    );
+    String _selectedStatusFilter = "All";
+    final lectures = _selectedStatusFilter == "All"
+        ? _allLectures
+        : _allLectures.where((l) => l.status == _selectedStatusFilter).toList();
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      // Bottom Floating Action Button to add extra lectures seamlessly
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: lectures.isNotEmpty
+          ? FloatingActionButtonLocation.endFloat
+          : FloatingActionButtonLocation.centerTop,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: EdgeInsets.symmetric(
+            horizontal: 10, vertical: lectures.isNotEmpty ? 10 : 300),
         child: SizedBox(
-          width: double.infinity,
-          height: 52,
+          width: 200,
+          height: 55,
           child: FloatingActionButton.extended(
             backgroundColor: colorScheme.primary,
             elevation: 2,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            icon: const Icon(Icons.add_rounded, color: Colors.white),
-            label: const Text(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            icon: Icon(Icons.add_rounded, color: colorScheme.onSurface),
+            label: Text(
               "Add Extra Lecture",
               style: TextStyle(
-                  color: Colors.white,
+                  color: colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
             ),
-            onPressed: () {},
+            onPressed: () {
+              print('Floating button tapped');
+            },
           ),
         ),
       ),
       body: Column(
         children: [
-          // A. FILTER CHIPS CAROUSEL BAR
+          // FILTER BAR
           Container(
             padding:
                 const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
             height: 64,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: [
-                _buildFilterChip("All", colorScheme.primary),
-                const SizedBox(width: 8),
-                _buildFilterChip("Present", Colors.greenAccent.shade400),
-                const SizedBox(width: 8),
-                _buildFilterChip("Absent", Colors.redAccent.shade200),
-                const SizedBox(width: 8),
-                _buildFilterChip("Cancelled", Colors.orangeAccent),
-              ],
+              children: [],
             ),
           ),
 
@@ -472,7 +518,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
             child: lectures.isEmpty
                 ? Center(
                     child: Text(
-                      "No $_selectedFilter lectures recorded.",
+                      "No $_selectedStatusFilter lectures recorded.",
                       style: const TextStyle(color: Colors.grey, fontSize: 15),
                     ),
                   )
@@ -495,6 +541,19 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                         }
                       }
 
+                      bool isLastCardInList = (index == lectures.length - 1);
+                      bool isLast = false;
+                      if (isLastCardInList) {
+                        isLast = true;
+                      } else {
+                        final nextLecture = lectures[index + 1].date;
+
+                        if (lecture.date.month != nextLecture.month ||
+                            lecture.date.year != nextLecture.year) {
+                          isLast = true;
+                        }
+                      }
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -512,7 +571,8 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                               ),
                             ),
                           ],
-                          _buildTimelineCardRow(lecture, theme),
+                          _buildTimelineCardRow(
+                              lecture, theme, index, lectures.length, isLast),
                         ],
                       );
                     },
@@ -523,45 +583,12 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     );
   }
 
-  // Helper: Builds the interactive Filter Chip UI
-  Widget _buildFilterChip(String label, Color activeColor) {
-    final isSelected = _selectedFilter == label;
-    final theme = Theme.of(context);
-
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (bool selected) {
-        if (selected) {
-          setState(() {
-            _selectedFilter =
-                label; // Re-runs master function filter query automatically!
-          });
-        }
-      },
-      labelStyle: TextStyle(
-        color: isSelected
-            ? Colors.white
-            : theme.colorScheme.onSurface.withOpacity(0.7),
-        fontWeight: FontWeight.bold,
-        fontSize: 13,
-      ),
-      selectedColor: activeColor.withOpacity(0.85),
-      backgroundColor: theme.colorScheme.surfaceContainerLow,
-      showCheckmark: false,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side:
-            BorderSide(color: isSelected ? Colors.transparent : Colors.white10),
-      ),
-    );
-  }
-
-// Helper: Builds the individual timeline entry item row
-  Widget _buildTimelineCardRow(Lecture lecture, ThemeData theme) {
+  Widget _buildTimelineCardRow(Lecture lecture, ThemeData theme, int index,
+      int totalCount, bool isLast) {
     final status = lecture.status;
+    final colorScheme = theme.colorScheme;
 
-    Color statusColor = Colors.grey;
+    Color statusColor = colorScheme.onSurface.withOpacity(0.6);
     IconData statusIcon = Icons.question_mark_rounded;
     if (status == 'Present') {
       statusColor = Colors.greenAccent.shade400;
@@ -570,59 +597,42 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       statusColor = Colors.redAccent.shade200;
       statusIcon = Icons.cancel_rounded;
     } else if (status == "Cancelled") {
-      statusColor = Colors.orangeAccent;
+      statusColor = const Color.fromARGB(255, 211, 149, 67);
       statusIcon = Icons.timelapse_rounded;
     }
 
-    final DateTime lectureDate = lecture.date ?? DateTime.now();
     final String dayStr = DateFormat('dd').format(lecture.date);
     final String monthStr =
         DateFormat('MMM').format(lecture.date).toUpperCase();
 
-    final String startMinStr = lecture.startMinute.toString().padLeft(2, '0');
-    final String endMinStr = lecture.endMinute.toString().padLeft(2, '0');
     final String timeString =
-        "${lecture.startHour}:$startMinStr – ${lecture.endHour}:$endMinStr";
+        "${lecture.startHour}:${lecture.startMinute.toString().padLeft(2, '0')} – ${lecture.endHour}:${lecture.endMinute.toString().padLeft(2, '0')}";
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Left Side: Date Display Block
-          SizedBox(
-            width: 45,
-            child: Column(
+          // LEFT DATE & LINE PART
+          TimelineIndicatorTrack(
+            leftWidth: 45.0,
+            showTopLine: true, // Hides top connector tracking line on entry #0
+            showBottomLine: !isLast,
+            lineColor: statusColor.withOpacity(
+                0.2), // Track color maps nicely to your attendance states
+            leftWidget: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(dayStr,
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 Text(monthStr,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey,
+                        color: colorScheme.onSurface.withOpacity(0.6),
                         fontWeight: FontWeight.bold)),
               ],
             ),
-          ),
-
-          // 2. Center Side: Continuous Timeline Tracking Track
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 6),
-                Icon(statusIcon, size: 20, color: statusColor),
-                Expanded(
-                  child: Container(
-                    width: 2.5,
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    color: statusColor
-                        .withOpacity(0.3), // Keeps track connected downward
-                  ),
-                ),
-              ],
-            ),
+            indicatorNode: Icon(statusIcon, size: 22, color: statusColor),
           ),
 
           // 3. Right Side: Card Information Box
@@ -631,7 +641,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLow,
+                color: theme.colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -650,27 +660,37 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                       ),
                       const SizedBox(height: 4),
                       Text(timeString,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 13)),
+                          style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.4),
+                              fontSize: 13)),
                     ],
                   ),
                   // Location Label Tag Box
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      "${(lecture.roomNo == '') ? '--' : lecture.roomNo}",
-                      style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 20,
+                            color: colorScheme.onSurface.withOpacity(0.8),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "${(lecture.roomNo == '') ? '---' : lecture.roomNo}",
+                            style: TextStyle(
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      )),
                 ],
               ),
             ),
@@ -679,4 +699,6 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       ),
     );
   }
+
+//-------------------------------------------------------------------------
 }

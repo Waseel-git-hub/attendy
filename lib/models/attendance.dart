@@ -8,7 +8,7 @@ class AttendanceCount extends HiveObject {
   dynamic subjectID;
 
   @HiveField(1)
-  String monthKey; //Overall, 05-2026
+  String monthKey; //Overall, 2026-05 (yyyy-MM)
 
   @HiveField(2)
   int presentCount;

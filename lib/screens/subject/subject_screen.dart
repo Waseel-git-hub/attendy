@@ -4,7 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
 import '../../models/subject.dart';
 //  SCREENS
-import 'subject_info_screen.dart';
 import '../subject/subject_stats_page.dart';
 //  WIDGETS
 import '../../widgets/subject_card.dart';

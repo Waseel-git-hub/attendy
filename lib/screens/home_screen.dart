@@ -9,6 +9,7 @@ import '../models/subject.dart';
 import '../services/database_service.dart';
 //  WIGDETS
 import '../widgets/lecture_card.dart';
+import '../widgets/timeline.dart';
 //------------------------------------------------------------------------------
 
 class HomeScreen extends StatefulWidget {
@@ -460,12 +461,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 1. Time Display (e.g., 09:00)
-                      _buildTimeColumn(lecture),
-
-                      // 2. The Vertical Timeline Bar
-                      _buildTimelineBar(Theme.of(context).colorScheme.primary,
-                          index == lectures.length - 1),
+                      TimelineIndicatorTrack(
+                        leftWidth: 55,
+                        showTopLine: true,
+                        showBottomLine: index != lectures.length - 1,
+                        lineColor: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.15),
+                        leftWidget: _buildTimeColumn(lecture),
+                        indicatorNode: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.3),
+                              width: 4,
+                            ),
+                          ),
+                        ),
+                      ),
 
                       const SizedBox(width: 12),
 
@@ -525,36 +545,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTimelineBar(Color color, bool isLast) {
-    return Column(
-      children: [
-        Container(
-            width: 2,
-            height: 90,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.15)),
-        // The colored node
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(0.3), width: 4),
-          ),
-        ),
-        // The line segment below the dot (extends to the next item)
-        Expanded(
-          child: Container(
-            width: 2,
-            color: isLast
-                ? Colors.transparent
-                : Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
-          ),
-        ),
-      ],
     );
   }
 

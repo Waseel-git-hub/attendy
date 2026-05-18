@@ -111,7 +111,7 @@ class DatabaseService {
     DateTime? specificDate,
     DateTime? filterMonth,
     String statusFilter = "All",
-    bool latestFirst = false,
+    bool oldestFirst = false,
   }) {
     // 1. All lectures
     Iterable<Lecture> query = lectureBox.values;
@@ -144,7 +144,7 @@ class DatabaseService {
     }
     List<Lecture> results = query.toList();
 
-    if (latestFirst) {
+    if (oldestFirst) {
       results.sort((a, b) => (a.startHour * 60 + a.startMinute)
           .compareTo(b.startHour * 60 + b.startMinute));
     } else {
@@ -172,7 +172,6 @@ class DatabaseService {
     });
   }
 
-  //
   static Future<String?> saveTimetableEntry({
     required TimetableEntry entry,
     dynamic hiveKey,

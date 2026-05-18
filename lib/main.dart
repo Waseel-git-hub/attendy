@@ -1,6 +1,9 @@
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'navigation_menu.dart';
+
 //  SCREENS
 //  SERVICES
 import '../services/database_service.dart';
@@ -14,6 +17,11 @@ void main() async {
   await Hive.initFlutter();
 
   await DatabaseService.init();
+
+  if (kDebugMode) {
+    WakelockPlus.enable();
+    print("🛠️ Debug mode detected: Screen wake-lock enabled!");
+  }
 
   final settingsBox = await Hive.openBox('settingsBox');
   final int savedThemeIndex = settingsBox.get(

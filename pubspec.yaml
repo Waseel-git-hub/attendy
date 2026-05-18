@@ -28,6 +28,7 @@ dependencies:
 
   # 🎨 UI
   google_fonts: 6.2.1
+  wakelock_plus: ^1.6.1
 
 dev_dependencies:
   flutter_test:
