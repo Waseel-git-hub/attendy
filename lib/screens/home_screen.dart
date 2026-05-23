@@ -8,6 +8,7 @@ import '../models/subject.dart';
 //  SERVICES
 import '../services/database_service.dart';
 //  WIGDETS
+import '../widgets/extra_lecture_sheet.dart';
 import '../widgets/lecture_card.dart';
 import '../widgets/timeline.dart';
 //------------------------------------------------------------------------------
@@ -31,294 +32,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return List.generate(7, (i) => targetMonday.add(Duration(days: i)));
   }
 
-  void _showAddExtraLectureSheet(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    DateTime selectedDate = _selectedDate;
-    TimeOfDay selectedStartTime = const TimeOfDay(hour: 9, minute: 0);
-    TimeOfDay selectedEndTime = TimeOfDay(
-        hour: selectedStartTime.hour + 1, minute: selectedStartTime.minute);
-    bool customEndTime = false;
-    dynamic _selectedSubjectId;
-    Subject? _selectedSubject;
-    final TextEditingController roomController = TextEditingController();
-
-    showModalBottomSheet(
+  void _showAddExtraLectureSheet(BuildContext context) async {
+    // 1. Open the modal sheet and wait for it to close
+    final entrySaved = await showModalBottomSheet<bool>(
       context: context,
-      isScrollControlled: true, // Allows sheet to push up when keyboard opens
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          // Allows local state updates inside the sheet
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                top: 20,
-                left: 20,
-                right: 20,
-              ),
-              child: SingleChildScrollView(
-                // FIXED: Prevents keyboard compression layout crashes
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Add Extra Lecture",
-                      style: TextStyle(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28),
-                    ),
-                    const SizedBox(height: 15),
-
-                    // 1. SUBJECT DROPDOWN (Fetched dynamically from your subjects)
-
-                    ValueListenableBuilder(
-                      valueListenable: DatabaseService.subjectBox.listenable(),
-                      builder: (context, Box<Subject> box, _) {
-                        if (box.values.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: const Text(
-                              "No subjects found! Add them in settings first.",
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        }
-
-                        return DropdownButtonFormField<dynamic>(
-                          value: _selectedSubjectId,
-                          selectedItemBuilder: (BuildContext context) {
-                            return box.values.map((Subject subject) {
-                              return Row(
-                                children: [
-                                  Icon(
-                                    IconData(subject.iconCodePoint,
-                                        fontFamily: 'MaterialIcons'),
-                                    color: Color(subject.colorValue),
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    subject.name,
-                                    style: TextStyle(
-                                        color: theme.colorScheme.onSurface),
-                                  ),
-                                ],
-                              );
-                            }).toList();
-                          },
-
-                          decoration: InputDecoration(
-                            labelText: "Select Subject",
-                            labelStyle: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                            filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          dropdownColor: colorScheme.surfaceContainerHigh,
-
-                          // RICH DROPDOWN MENU LIST ITEMS
-                          items: box.values.map((Subject subject) {
-                            return DropdownMenuItem<dynamic>(
-                              value: subject.key,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Renders the icon with its unique color inside the menu selector tray
-                                  Icon(
-                                    IconData(subject.iconCodePoint,
-                                        fontFamily: 'MaterialIcons'),
-                                    color: Color(subject.colorValue),
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    subject.name,
-                                    style: const TextStyle(fontSize: 15),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-
-                          onChanged: (dynamic val) {
-                            setModalState(() {
-                              _selectedSubjectId = val;
-                              _selectedSubject =
-                                  DatabaseService.getSubjectById(val);
-                            });
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 15),
-
-                    // 2. DATE PICKER ROW
-                    ListTile(
-                      leading: const Icon(Icons.calendar_month),
-                      title: const Text("Date"),
-                      subtitle:
-                          Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                      trailing: const Icon(Icons.edit, size: 20),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime.now()
-                              .subtract(const Duration(days: 365)),
-                          lastDate:
-                              DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setModalState(() => selectedDate = picked);
-                        }
-                      },
-                    ),
-
-                    // 3. START TIME PICKER ROW
-                    ListTile(
-                      leading: const Icon(Icons.access_time),
-                      title: const Text("Start Time"),
-                      subtitle: Text(selectedStartTime.format(context)),
-                      trailing: const Icon(Icons.edit, size: 20),
-                      onTap: () async {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime: selectedStartTime,
-                        );
-                        if (picked != null) {
-                          setModalState(() {
-                            selectedStartTime = picked;
-                            if (!customEndTime) {
-                              selectedEndTime = TimeOfDay(
-                                  hour: picked.hour + 1, minute: picked.minute);
-                            }
-                          });
-                        }
-                      },
-                    ),
-
-                    // 4. END TIME PICKER ROW
-                    ListTile(
-                      leading: const Icon(Icons.access_time),
-                      title: const Text("End Time"),
-                      subtitle: Text(selectedEndTime.format(context)),
-                      trailing: const Icon(Icons.edit, size: 20),
-                      onTap: () async {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime: selectedEndTime,
-                        );
-                        if (picked != null) {
-                          setModalState(() {
-                            customEndTime = true;
-                            selectedEndTime = picked;
-                          });
-                        }
-                      },
-                    ),
-
-                    // 5. ROOM TEXT FIELD
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: TextFormField(
-                        controller: roomController,
-                        textCapitalization: TextCapitalization.none,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.room),
-                          labelText: "Room No.",
-                          hintText: "101, 205, A-15",
-                          labelStyle: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // 6. ACTION BUTTONS
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("Cancel"),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () async {
-                            if (_selectedSubjectId == null) return;
-
-                            // Extract value safely or set default fallback text
-                            String roomText = roomController.text.trim().isEmpty
-                                ? 'Not Specified'
-                                : roomController.text.trim();
-
-                            await DatabaseService.lectureInput(
-                              _selectedSubjectId,
-                              DateTime(
-                                selectedDate.year,
-                                selectedDate.month,
-                                selectedDate.day,
-                              ),
-                              selectedStartTime.hour,
-                              selectedStartTime.minute,
-                              selectedEndTime.hour,
-                              selectedEndTime.minute,
-                              'Not Marked',
-                              roomText, // FIXED: Replaced 'None' with the typed room controller data!
-                              isExtraClass: true,
-                            );
-
-                            if (mounted) {
-                              Navigator.pop(context);
-                              setState(() {});
-                            }
-                          },
-                          child: const Text("Save Lecture"),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => AddExtraLectureSheet(
+        initialDate: _selectedDate, // Passes your screen's active calendar date
+        // subjectKey is omitted here, so the dropdown starts unselected
+      ),
     );
+
+    // 2. If the user saved a lecture (returned true), refresh the screen layout
+    if (entrySaved == true && mounted) {
+      setState(() {});
+    }
   }
 
   @override

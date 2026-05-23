@@ -1,4 +1,5 @@
 import 'package:attendance_tracker/models/lecture.dart';
+import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 //  MODELS
@@ -8,6 +9,7 @@ import '../subject/add_subject_screen.dart';
 //  WIDGETS
 import '../../widgets/percent_indicator.dart';
 import '../../widgets/timeline.dart';
+import '../../widgets/extra_lecture_sheet.dart';
 //  SERVICES
 import '../../services/database_service.dart';
 //------------------------------------------------------------
@@ -29,6 +31,12 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
   List<String> _cacheMonthKeys = [];
   List<Lecture> _allLectures = [];
 
+  String _selectedStatusFilter = "All";
+  String? _selectedLecturesMonthKey;
+  String _sortOrder = "Newest First";
+
+  String? _selectedMonthKey; //2026-05
+
   @override
   void initState() {
     super.initState();
@@ -47,19 +55,41 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     final rawLectures = DatabaseService.getLectures(subjectID: _subject!.key);
 
     // Unique months
+    final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
     final uniqueKeys = rawLectures
-        .map((l) {
-          final date = l.date ?? DateTime.now();
-          return DateFormat('yyyy-MM').format(date);
-        })
+        .map((l) => DateFormat('yyyy-MM').format(l.date))
+        .where((monthStr) => monthStr.compareTo(currentMonth) <= 0)
         .toSet()
         .toList();
     uniqueKeys.sort((a, b) => b.compareTo(a));
 
     setState(() {
       _allLectures = rawLectures;
-      _cacheMonthKeys = uniqueKeys.take(3).toList();
+      _cacheMonthKeys = uniqueKeys.toList();
     });
+  }
+
+  // Pass the subject or its key into this method depending on your setup
+  void _showAddExtraLectureSheet(
+      BuildContext context, dynamic currentSubjectKey) async {
+    // 1. Open the modal sheet
+    final entrySaved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => AddExtraLectureSheet(
+        subjectKey:
+            currentSubjectKey, // Pre-selects this subject in the dropdown
+        // initialDate is omitted here, so it automatically defaults to today's date!
+      ),
+    );
+
+    // 2. Refresh your statistics metrics if a new class was logged
+    if (entrySaved == true && mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -90,7 +120,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                   builder: (context) => AddSubjectScreen(subject: _subject),
                 ),
               );
-            }, // For edit/delete operations later
+            },
           )
         ],
         bottom: TabBar(
@@ -115,9 +145,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
         children: [
           _buildOverviewTab(context, _subject!, theme),
           _buildLecturesTab(context, _subject!, theme),
-          const Center(
-              child: Text(
-                  "Analytics Tab View (Coming Next)")), //_buildAnalyticsTab(context, _subject!, '2026-05', theme),
+          _buildAnalyticsTab(context, _subject!, '2026-05', theme),
         ],
       ),
     );
@@ -127,95 +155,155 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       BuildContext context, Subject subject, ThemeData theme) {
     final colorScheme = theme.colorScheme;
 
-    final overallStat = DatabaseService.getAttendance(_subject!.key, 'Overall');
+    int presentCount;
+    int totalCount;
+    int requiredLecture;
+    bool isOverall = _selectedMonthKey == null;
 
-    int presentCount = overallStat.presentCount;
-    int totalCount = overallStat.totalCount;
+    List<dynamic> displayLectures;
+
+    if (isOverall) {
+      final overallStat = DatabaseService.getAttendance(subject.key, 'Overall');
+      presentCount = overallStat.presentCount;
+      totalCount = overallStat.totalCount;
+      requiredLecture = DatabaseService.requiredLecture(
+          subject.minAttend.toDouble(), totalCount, presentCount);
+      displayLectures = _allLectures.take(3).toList(); // Global short preview
+    } else {
+      final monthlyStat =
+          DatabaseService.getAttendance(subject.key, _selectedMonthKey!);
+      presentCount = monthlyStat.presentCount;
+      totalCount = monthlyStat.totalCount;
+      requiredLecture = DatabaseService.requiredLecture(
+          subject.minAttend.toDouble(), totalCount, presentCount);
+
+      // Filter your memory array to show ONLY lectures belonging to that specific month string
+      displayLectures = _allLectures.where((lecture) {
+        final String formatCheck = DateFormat('yyyy-MM').format(lecture.date);
+        return formatCheck == _selectedMonthKey;
+      }).toList();
+    }
+
     int absentCount = totalCount - presentCount;
     double overallAttendance =
         totalCount > 0 ? (presentCount / totalCount) * 100 : 0.0;
 
-    int requiredLecture = DatabaseService.requiredLecture(
-        subject.minAttend.toDouble(), totalCount, presentCount);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Overall Overview",
+    return PopScope(
+      canPop: isOverall,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_selectedMonthKey != null) {
+          setState(() {
+            _selectedMonthKey = null;
+          });
+        }
+      },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _selectedMonthKey == null
+                      ? "Overall Overview"
+                      : // Generates: "May Breakdown"
+                      "${DateFormat('MMMM').format(DateFormat('yyyy-MM').parse(_selectedMonthKey!))} Overview",
                   style: TextStyle(
                       color: colorScheme.onSurface,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildAttendanceSummaryCard(
-              attendancePercentage: overallAttendance,
-              targetPercentage: _subject!.minAttend,
-              requiredLecturesValue: requiredLecture,
-              presentCount: presentCount,
-              absentCount: absentCount,
-              totalCount: totalCount,
-              theme: theme),
-          const SizedBox(height: 25),
+                      fontWeight: FontWeight.bold),
+                ),
 
-          // C. MONTHLY OVERVIEW TRACKER SECTION
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Monthly Overview",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextButton(onPressed: () {}, child: const Text("View all")),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (_cacheMonthKeys.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.0),
-              child: Center(
-                  child: Text("No monthly data tracked yet.",
-                      style: TextStyle(
-                          color: colorScheme.onSurface.withOpacity(0.6)))),
-            )
-          else
-            ..._cacheMonthKeys.map((monthKey) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10.0),
-                child: _buildMonthlyProgressRow(theme, monthKey),
-              );
-            }),
-          const SizedBox(height: 25),
+                // Clean return link mechanism that updates widget states
+                if (!isOverall)
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedMonthKey =
+                            null; // Step back to parent view container
+                      });
+                    },
+                    icon: const Icon(Icons.clear_rounded, size: 16),
+                    label: const Text("Reset View"),
+                    style: TextButton.styleFrom(
+                      foregroundColor: colorScheme.primary,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+              ],
+            ),
 
-          // D. RECENT HISTORY SHORTLIST VIEW
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Recent Lectures",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextButton(
-                  onPressed: () => _tabController.animateTo(1),
-                  child: const Text("View all")),
+            const SizedBox(height: 20),
+            _buildAttendanceSummaryCard(
+                attendancePercentage: overallAttendance,
+                targetPercentage: _subject!.minAttend,
+                requiredLecturesValue: requiredLecture,
+                presentCount: presentCount,
+                absentCount: absentCount,
+                totalCount: totalCount,
+                theme: theme),
+            const SizedBox(height: 25),
+
+            // C. MONTHLY OVERVIEW TRACKER SECTION
+            if (isOverall) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Monthly Overview",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_cacheMonthKeys.isEmpty)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                  child: Center(
+                      child: Text("No monthly data tracked yet.",
+                          style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.6)))),
+                )
+              else
+                ..._cacheMonthKeys.map((monthKey) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10.0),
+                    child: _buildMonthlyProgressRow(theme, monthKey),
+                  );
+                }),
+              const SizedBox(height: 25),
             ],
-          ),
-          const SizedBox(height: 10),
-          if (_allLectures.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.0),
-              child: Center(
-                  child: Text("No monthly data tracked yet.",
-                      style: TextStyle(
-                          color: colorScheme.onSurface.withOpacity(0.6)))),
-            )
-          else
-            ..._allLectures
-                .take(3)
-                .map((lecture) => _buildRecentLectureRow(lecture, theme)),
-        ],
+
+            // D. RECENT HISTORY SHORTLIST VIEW
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Recent Lectures",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextButton(
+                    onPressed: () => _tabController.animateTo(1),
+                    child: const Text("View all")),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_allLectures.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 12.0),
+                child: Center(
+                    child: Text("No monthly data tracked yet.",
+                        style: TextStyle(
+                            color: colorScheme.onSurface.withOpacity(0.6)))),
+              )
+            else
+              ...displayLectures
+                  .take(3)
+                  .map((lecture) => _buildRecentLectureRow(lecture, theme)),
+          ],
+        ),
       ),
     );
   }
@@ -257,11 +345,14 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     String month = DateFormat('MMM').format(parsedDate);
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
-        print("$month tapped");
+        setState(() {
+          _selectedMonthKey = monthKey;
+        });
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
             SizedBox(
@@ -291,6 +382,10 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
+            SizedBox(
+              width: 40,
+              child: Icon(Icons.keyboard_arrow_right),
+            )
           ],
         ),
       ),
@@ -466,10 +561,249 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
   Widget _buildLecturesTab(
       BuildContext context, Subject subject, ThemeData theme) {
     final colorScheme = theme.colorScheme;
-    String _selectedStatusFilter = "All";
-    final lectures = _selectedStatusFilter == "All"
-        ? _allLectures
-        : _allLectures.where((l) => l.status == _selectedStatusFilter).toList();
+
+    final DateTime? parsedFilterMonth = _selectedLecturesMonthKey != null
+        ? DateFormat('yyyy-MM').parse(_selectedLecturesMonthKey!)
+        : null;
+
+    final lectures = _allLectures.where((lecture) {
+      if (_selectedStatusFilter != "All") {
+        final dbStatus = _selectedStatusFilter == "Unmarked"
+            ? "not marked"
+            : _selectedStatusFilter.toLowerCase();
+        if (lecture.status.toLowerCase() != dbStatus) return false;
+      }
+      // 2. Apply Month Filter
+      if (_selectedLecturesMonthKey != null) {
+        final String lectureMonth = DateFormat('yyyy-MM').format(lecture.date);
+        if (lectureMonth != _selectedLecturesMonthKey) return false;
+      }
+
+      return true;
+    }).toList();
+
+    // 3. Apply Sorting Order
+    if (_sortOrder == "Oldest First") {
+      lectures.sort((a, b) => a.date.compareTo(b.date));
+    } else {
+      lectures.sort((a, b) => b.date.compareTo(a.date));
+    }
+
+    void showFilterSheet(
+        BuildContext context, ThemeData theme, dynamic subjectID) {
+      // Local state instances inside the modal so choices don't immediately apply until confirmed
+      String tempStatus = _selectedStatusFilter;
+      String? tempMonth = _selectedLecturesMonthKey;
+      String tempSort = _sortOrder;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: const Color(
+            0xFF161622), // Deep premium dark background matching your UI
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 20.0, horizontal: 20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top drag handlebar line indicator
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text("Filter Lectures",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+
+                    // SECTION 1: STATUS CHIPS
+                    const Text("Status",
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white70)),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ["All", "Present", "Absent", "Unmarked"]
+                          .map((status) {
+                        final isSelected = tempStatus == status;
+                        return ChoiceChip(
+                          label: Text(status),
+                          selected: isSelected,
+                          onSelected: (_) =>
+                              setModalState(() => tempStatus = status),
+                          selectedColor:
+                              const Color(0xFF4F46E5), // Blue accent theme
+                          backgroundColor: Colors.white.withOpacity(0.05),
+                          labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white60,
+                              fontWeight: FontWeight.w600),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide.none),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // SECTION 2: MONTH SELECTION CHIPS
+                    const Text("Month",
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white70)),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ChoiceChip(
+                            label: const Text("All Months"),
+                            selected: tempMonth == null,
+                            onSelected: (_) =>
+                                setModalState(() => tempMonth = null),
+                            selectedColor: const Color(0xFF4F46E5),
+                            backgroundColor: Colors.white.withOpacity(0.05),
+                            labelStyle: TextStyle(
+                                color: tempMonth == null
+                                    ? Colors.white
+                                    : Colors.white60,
+                                fontWeight: FontWeight.w600),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide.none),
+                          ),
+                          ..._cacheMonthKeys.map((monthKey) {
+                            final isSelected = tempMonth == monthKey;
+                            final parsedName = DateFormat('MMM yyyy')
+                                .format(DateFormat('yyyy-MM').parse(monthKey));
+                            return Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: ChoiceChip(
+                                label: Text(parsedName),
+                                selected: isSelected,
+                                onSelected: (_) =>
+                                    setModalState(() => tempMonth = monthKey),
+                                selectedColor: const Color(0xFF4F46E5),
+                                backgroundColor: Colors.white.withOpacity(0.05),
+                                labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white60,
+                                    fontWeight: FontWeight.w600),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide.none),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // SECTION 3: SORT ENGINE SELECTION CONTROL
+                    const Text("Sort By",
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white70)),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      children: ["Newest First", "Oldest First"].map((order) {
+                        final isSelected = tempSort == order;
+                        return ChoiceChip(
+                          label: Text(order),
+                          selected: isSelected,
+                          onSelected: (_) =>
+                              setModalState(() => tempSort = order),
+                          selectedColor: const Color(0xFF4F46E5),
+                          backgroundColor: Colors.white.withOpacity(0.05),
+                          labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white60,
+                              fontWeight: FontWeight.w600),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide.none),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // SECTION 4: ACTIONS SEGMENT CONTROL BUTTON ROW
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () {
+                              // Clear everything and dismiss modal instantly
+                              setState(() {
+                                _selectedStatusFilter = "All";
+                                _selectedLecturesMonthKey = null;
+                                _sortOrder = "Newest First";
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text("Reset",
+                                style: TextStyle(
+                                    color: Colors.white60,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4F46E5),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
+                              // Flush local states back to global page state scope definitions
+                              setState(() {
+                                _selectedStatusFilter = tempStatus;
+                                _selectedLecturesMonthKey = tempMonth;
+                                _sortOrder = tempSort;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text("Apply",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
 
     return Scaffold(
       floatingActionButtonLocation: lectures.isNotEmpty
@@ -495,21 +829,94 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                   fontWeight: FontWeight.bold),
             ),
             onPressed: () {
-              print('Floating button tapped');
+              _showAddExtraLectureSheet(context, _subject!.key);
             },
           ),
         ),
       ),
       body: Column(
         children: [
-          // FILTER BAR
           Container(
+            width: double.infinity,
             padding:
                 const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-            height: 64,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [],
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                    color: colorScheme.onSurface.withOpacity(0.05), width: 1),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Active filters summary pill indicator
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune_rounded,
+                          size: 16, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _selectedLecturesMonthKey == null
+                              ? "All History"
+                              : DateFormat('MMMM yyyy')
+                                  .format(parsedFilterMonth!),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface.withOpacity(0.8)),
+                        ),
+                      ),
+                      if (_selectedStatusFilter != "All") ...[
+                        Text(" • ",
+                            style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.4))),
+                        Text(
+                          _selectedStatusFilter,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedStatusFilter == "Present"
+                                  ? Colors.greenAccent
+                                  : _selectedStatusFilter == "Absent"
+                                      ? Colors.redAccent
+                                      : Colors.amberAccent),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Interactive Filter Sheet Trigger Button
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => showFilterSheet(context, theme, subject.key),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: colorScheme.primary),
+                      color: colorScheme.primary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Filter",
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary)),
+                        const SizedBox(width: 8),
+                        Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 20, color: colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -518,7 +925,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
             child: lectures.isEmpty
                 ? Center(
                     child: Text(
-                      "No $_selectedStatusFilter lectures recorded.",
+                      "No lectures recorded.",
                       style: const TextStyle(color: Colors.grey, fontSize: 15),
                     ),
                   )
@@ -701,4 +1108,212 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
   }
 
 //-------------------------------------------------------------------------
+
+  Widget _buildAnalyticsTab(
+      BuildContext context, Subject subject, String monthKey, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    // 2. Compute dynamic historical timeline data points from cached keys (Max 5 Months)
+    final List<Map<String, dynamic>> trendData = [];
+
+    for (String mKey in _cacheMonthKeys.reversed.toList()) {
+      final monthlyStat = DatabaseService.getAttendance(subject.key, mKey);
+
+      final int mTotal = monthlyStat.totalCount;
+      final int mAttended = monthlyStat.presentCount;
+
+      final double ratio = mTotal > 0
+          ? double.parse((mAttended / mTotal).toStringAsFixed(2))
+          : 0.0;
+
+      // Map "2026-05" into a friendly display name like "May"
+      DateTime parsedDate = DateFormat('yyyy-MM').parse(mKey);
+      String shortLabel = DateFormat('MMM').format(parsedDate);
+
+      trendData.add({
+        "month": shortLabel,
+        "ratio": ratio,
+      });
+    }
+
+    // 3. Render a single clean structure
+    if (trendData.isEmpty) {
+      return Center(
+        child: Text(
+          "Not enough analytical history recorded yet.",
+          style: TextStyle(
+              color: colorScheme.onSurface.withOpacity(0.5), fontSize: 15),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Attendance Trend",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+
+              // 📊 Hooked completely up to localized trend data!
+              CustomLineChart(dataPoints: trendData),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+}
+
+class CustomLineChart extends StatelessWidget {
+  final List<Map<String, dynamic>> dataPoints;
+
+  const CustomLineChart({super.key, required this.dataPoints});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 180,
+          width: double.infinity,
+          child: CustomPaint(
+            painter: LineGraphPainter(
+              data: dataPoints,
+              accentColor: theme.colorScheme.primary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class LineGraphPainter extends CustomPainter {
+  final List<Map<String, dynamic>> data;
+  final Color accentColor;
+
+  LineGraphPainter({required this.data, required this.accentColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+
+    final double paddingLeft = 40.0;
+    final double paddingRight = 20.0;
+    final double paddingTop = 20.0;
+    final double paddingBottom = 25.0;
+
+    final double chartWidth = size.width - paddingLeft - paddingRight;
+    final double chartHeight = size.height - paddingTop - paddingBottom;
+
+    // A. DRAW BACKGROUND GRID LINES
+    final int gridDivisions = 4;
+    final Paint gridPaint = Paint()
+      ..color = Colors.white.withOpacity(0.04)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    for (int i = 0; i <= gridDivisions; i++) {
+      double ratio = i / gridDivisions;
+      double y = paddingTop + chartHeight * (1 - ratio);
+
+      canvas.drawLine(Offset(paddingLeft, y),
+          Offset(size.width - paddingRight, y), gridPaint);
+
+      textPainter.text = TextSpan(
+        text: "${(ratio * 100).round()}%",
+        style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10),
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(0, y - textPainter.height / 2));
+    }
+
+    // B. CALCULATE X & Y PLOTTING POINTS
+    double stepX = chartWidth / (data.length - 1);
+    List<Offset> points = [];
+
+    for (int i = 0; i < data.length; i++) {
+      double x = paddingLeft + (i * stepX);
+      double valueRatio = data[i]["ratio"] ?? 0.0;
+      double y = paddingTop + chartHeight * (1 - valueRatio);
+      points.add(Offset(x, y));
+    }
+
+    // C. DRAW CONNECTING TREND LINE
+    final Paint linePaint = Paint()
+      ..color = accentColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round;
+
+    final Path path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (int i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    canvas.drawPath(path, linePaint);
+
+    // D. DRAW LABELS & DOT NODES
+    final Paint dotOuterPaint = Paint()
+      ..color = accentColor
+      ..style = PaintingStyle.fill;
+    final Paint dotInnerPaint = Paint()
+      ..color = const Color(0xFF1E1E24)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < points.length; i++) {
+      final offset = points[i];
+      final int rawPercent = ((data[i]["ratio"] ?? 0.0) * 100).round();
+
+      // Outer & Inner rings for that clean "hollow dot" aesthetic from your screenshot
+      canvas.drawCircle(offset, 5.0, dotOuterPaint);
+      canvas.drawCircle(offset, 2.5, dotInnerPaint);
+
+      // Percentage numbers directly above nodes
+      textPainter.text = TextSpan(
+        text: "$rawPercent%",
+        style: const TextStyle(
+            color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+      );
+      textPainter.layout();
+      textPainter.paint(
+          canvas, Offset(offset.dx - textPainter.width / 2, offset.dy - 20));
+
+      // Month text labels directly below
+      textPainter.text = TextSpan(
+        text: data[i]["month"],
+        style: TextStyle(
+          color: i == data.length - 1
+              ? accentColor
+              : Colors.white.withOpacity(0.4),
+          fontSize: 11,
+          fontWeight:
+              i == data.length - 1 ? FontWeight.bold : FontWeight.normal,
+        ),
+      );
+      textPainter.layout();
+      textPainter.paint(
+          canvas,
+          Offset(offset.dx - textPainter.width / 2,
+              size.height - textPainter.height));
+    }
+  }
+
+  // Force repaint true for testing/hot-reloading layout mock configurations
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

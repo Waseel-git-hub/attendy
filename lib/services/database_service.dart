@@ -81,7 +81,7 @@ class DatabaseService {
             endHour: endHour,
             endMinute: endMinute,
             roomNo: roomNo,
-            status: "Not Marked",
+            status: status,
             isExtraClass: isExtraClass));
   }
 
