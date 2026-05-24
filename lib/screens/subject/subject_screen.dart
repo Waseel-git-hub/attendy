@@ -1,9 +1,9 @@
-import 'package:attendance_tracker/screens/subject/add_subject_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
 import '../../models/subject.dart';
 //  SCREENS
+import '../subject/add_subject_screen.dart';
 import '../subject/subject_stats_page.dart';
 //  WIDGETS
 import '../../widgets/subject_card.dart';

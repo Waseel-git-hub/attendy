@@ -1,9 +1,9 @@
-import 'package:attendance_tracker/models/lecture.dart';
 import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 //  MODELS
 import '../../models/subject.dart';
+import '../../models/lecture.dart';
 //  SCREENS
 import '../subject/add_subject_screen.dart';
 //  WIDGETS
