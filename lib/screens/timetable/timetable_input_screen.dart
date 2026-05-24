@@ -25,6 +25,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   late int _selectedDay;
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   late TimeOfDay _endTime;
+  int _currentDurationMinutes = 60;
   bool _isEndTimeManual = false;
   final TextEditingController _roomController = TextEditingController();
 
@@ -44,7 +45,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
 
     if (widget.prevEntry != null) {
       _selectedDay = widget.prevEntry!.dayOfWeek;
-      // Fill with existing data
       _startTime = TimeOfDay(
           hour: widget.prevEntry!.startHour,
           minute: widget.prevEntry!.startMinute);
@@ -52,15 +52,110 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
           hour: widget.prevEntry!.endHour, minute: widget.prevEntry!.endMinute);
       _selectedSubjectId = widget.prevEntry!.subjectID;
       _roomController.text = widget.prevEntry!.roomNo;
-      _isEndTimeManual = true;
+
+      int startTotalMin =
+          (widget.prevEntry!.startHour * 60) + widget.prevEntry!.startMinute;
+      int endTotalMin =
+          (widget.prevEntry!.endHour * 60) + widget.prevEntry!.endMinute;
+
+      _currentDurationMinutes = endTotalMin - startTotalMin;
     } else {
       _selectedDay = widget.initialDay ?? 1;
-      _endTime = _defaultEnd(_startTime);
+      _endTime = _defaultEnd(_startTime, _currentDurationMinutes);
     }
   }
 
-  TimeOfDay _defaultEnd(TimeOfDay start) {
-    return TimeOfDay(hour: (start.hour + 1) % 24, minute: start.minute);
+  TimeOfDay _defaultEnd(TimeOfDay start, int durationMinutes) {
+    int startMinutes = (start.hour * 60) + start.minute;
+    int endMinutes = (startMinutes + durationMinutes) % 1440;
+
+    return TimeOfDay(
+      hour: endMinutes ~/ 60,
+      minute: endMinutes % 60,
+    );
+  }
+
+  void _saveTimetableEntry() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    double startDouble = _startTime.hour + _startTime.minute / 60.0;
+    double endDouble = _endTime.hour + _endTime.minute / 60.0;
+
+    if (endDouble <= startDouble) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("End time must be after start time.")),
+      );
+      return;
+    }
+
+    // Prepare the unified data model instance
+    final entryData = TimetableEntry(
+      subjectID: _selectedSubjectId,
+      dayOfWeek: _selectedDay,
+      startHour: _startTime.hour,
+      startMinute: _startTime.minute,
+      endHour: _endTime.hour,
+      endMinute: _endTime.minute,
+      roomNo: _roomController.text.trim(),
+    );
+
+    // 🛠️ Route through the central DatabaseService pipeline to run collision rules
+    final errorMessage = await DatabaseService.saveTimetableEntry(
+      entry: entryData,
+      hiveKey: widget.prevEntry
+          ?.key, // Passes down the primary key if editing, null if creating
+    );
+
+    if (errorMessage != null) {
+      // Clash or database validation failed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Success - Pop screen safely
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  void _confirmDeletion(BuildContext context, ThemeData theme) async {
+    final colorScheme = theme.colorScheme;
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text("Delete Slot?"),
+        content: const Text(
+            "This removes this class from your weekly timetable template."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+            onPressed: () async {
+              Navigator.pop(dialogCtx); // Close dialog
+              if (widget.prevEntry != null) {
+                // Safely delete from Hive box
+                await widget.prevEntry!.delete();
+                if (context.mounted) {
+                  // Pop back to timetable layout view with a true refresh flag
+                  Navigator.pop(context, true);
+                }
+              }
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -72,7 +167,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
         title: Text("Add Class",
             style: TextStyle(
                 color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Form(
@@ -80,8 +174,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20.0),
           children: [
-            // 1. Subject Dropdown
-
             ValueListenableBuilder(
               valueListenable: DatabaseService.subjectBox.listenable(),
               builder: (context, Box<Subject> box, _) {
@@ -106,7 +198,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                       );
                     }).toList();
                   },
-
                   decoration: InputDecoration(
                     labelText: "Select Subject",
                     labelStyle: TextStyle(
@@ -120,8 +211,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                     ),
                   ),
                   dropdownColor: colorScheme.surfaceContainerHigh,
-
-                  // RICH DROPDOWN MENU LIST ITEMS
                   items: box.values.map((Subject subject) {
                     return DropdownMenuItem<dynamic>(
                       value: subject.key,
@@ -190,7 +279,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                           style: TextStyle(
                               color: colorScheme.onSurface.withOpacity(0.8),
                               fontSize: 12)),
-                      _buildTimeTile(_startTime, true),
+                      _buildTimeTile(_startTime, true, theme),
                     ],
                   ),
                 ),
@@ -203,7 +292,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                           style: TextStyle(
                               color: colorScheme.onSurface.withOpacity(0.8),
                               fontSize: 12)),
-                      _buildTimeTile(_endTime, false),
+                      _buildTimeTile(_endTime, false, theme),
                     ],
                   ),
                 ),
@@ -231,23 +320,56 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
             ElevatedButton(
               onPressed: _saveTimetableEntry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("Save Entry",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.save),
+                  const SizedBox(width: 6),
+                  const Text(
+                    "Save Entry",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
+            if (widget.prevEntry != null) ...[
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => _confirmDeletion(context, theme),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.delete),
+                    const SizedBox(width: 6),
+                    const Text(
+                      "Delete Entry",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ]
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTimeTile(TimeOfDay time, bool isStart) {
-    final theme = Theme.of(context);
+  Widget _buildTimeTile(TimeOfDay time, bool isStart, ThemeData theme) {
     final colorScheme = theme.colorScheme;
     return InkWell(
       onTap: () async {
@@ -256,20 +378,19 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
           initialTime: time,
         );
         if (picked != null) {
-          setState(() {
-            if (isStart) {
-              _startTime = picked;
-              if (!_isEndTimeManual) {
-                _endTime = TimeOfDay(
-                  hour: (picked.hour + 1) % 24,
-                  minute: picked.minute,
-                );
+          setState(
+            () {
+              if (isStart) {
+                _startTime = picked;
+                if (!_isEndTimeManual) {
+                  _endTime = _defaultEnd(_startTime, _currentDurationMinutes);
+                }
+              } else {
+                _endTime = picked;
+                _isEndTimeManual = true;
               }
-            } else {
-              _endTime = picked;
-              _isEndTimeManual = true;
-            }
-          });
+            },
+          );
         }
       },
       child: Container(
@@ -290,36 +411,5 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
         ),
       ),
     );
-  }
-
-  void _saveTimetableEntry() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    double startDouble = _startTime.hour + _startTime.minute / 60.0;
-    double endDouble = _endTime.hour + _endTime.minute / 60.0;
-
-    if (endDouble <= startDouble) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("End time must be after start time.")),
-      );
-      return;
-    }
-
-    final newEntry = TimetableEntry(
-      subjectID: _selectedSubjectId,
-      dayOfWeek: _selectedDay,
-      startHour: _startTime.hour,
-      startMinute: _startTime.minute,
-      endHour: _endTime.hour,
-      endMinute: _endTime.minute,
-      roomNo: _roomController.text.trim(),
-    );
-    final error = await DatabaseService.saveTimetableEntry(
-      entry: newEntry,
-    );
-
-    if (error == null) {
-      Navigator.pop(context);
-    }
   }
 }

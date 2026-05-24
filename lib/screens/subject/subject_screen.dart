@@ -90,8 +90,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                         MaterialPageRoute(
                             builder: (context) =>
                                 SubjectStatsPage(subjectKey: subject.key)));
-                  }
-                  if (isSelected) {
+                  } else {
                     _toggleSelection(subject.key);
                   }
                 },

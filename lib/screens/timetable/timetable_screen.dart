@@ -70,41 +70,79 @@ class _TimetableScreenState extends State<TimetableScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          isEditing ? "Edit Class" : "Add Class to $dayName?",
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            isEditing ? "Edit Class" : "Add Class to $dayName?",
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        content: isEditing
-            ? Text("Do you want to modify this lecture?",
-                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8)))
-            : null,
+          content: isEditing
+              ? Text("Do you want to modify this lecture?",
+                  style:
+                      TextStyle(color: colorScheme.onSurface.withOpacity(0.8)))
+              : null,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel",
+                  style:
+                      TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close Dialog
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddTimetableScreen(
+                      initialDay: dayIndex,
+                      prevEntry: entry,
+                    ),
+                  ),
+                );
+              },
+              child: Text(isEditing ? "Edit" : "Add"),
+            ),
+            if (isEditing) ...[
+              ElevatedButton(
+                child: Text('Delete'),
+                onPressed: () => _confirmDeletion(context, entry),
+              ),
+            ]
+          ]),
+    );
+  }
+
+  void _confirmDeletion(BuildContext context, TimetableEntry entry) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text("Delete Slot?"),
+        content: const Text(
+            "This removes this class from your weekly timetable template. Future unmarked classes for this slot will be cleared."),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel",
-                style:
-                    TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text("Cancel"),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close Dialog
+          TextButton(
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () async {
+              Navigator.pop(dialogCtx); // Dismiss dialog
 
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddTimetableScreen(
-                    initialDay: dayIndex,
-                    prevEntry: entry,
-                  ),
-                ),
-              );
+              await DatabaseService.deleteTimetableEntry(entry);
+              if (mounted) {
+                // Pop back to the Timetable view with a true flag to trigger layout re-render
+                Navigator.pop(context, true);
+              }
             },
-            child: Text(isEditing ? "Edit" : "Add"),
+            child: const Text("Delete"),
           ),
         ],
       ),
@@ -120,16 +158,23 @@ class _TimetableScreenState extends State<TimetableScreen> {
       appBar: AppBar(
         title: const Text("Timetable",
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
-              onPressed: () {}, icon: const Icon(Icons.calendar_month_outlined))
+              enableFeedback: true,
+              tooltip: 'Enter New Timetable Entry',
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => AddTimetableScreen()));
+              },
+              icon: const Icon(Icons.add))
         ],
       ),
       body: Column(
         children: [
-          _buildTopHeader(),
+          _buildTopHeader(theme),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +193,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
   // --- UI COMPONENTS ---
 
-  Widget _buildTopHeader() {
+  Widget _buildTopHeader(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     return Row(
       children: [
         SizedBox(width: timeBarWidth, height: headerHeight),
@@ -167,8 +213,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                     child: Text(
                       day,
                       style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.1),
                     ),

@@ -38,15 +38,18 @@ class SubjectCard extends StatelessWidget {
             children: [
               // Icon Container
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  IconData(subject.iconCodePoint, fontFamily: 'MaterialIcons'),
+                  (!isSelected)
+                      ? IconData(subject.iconCodePoint,
+                          fontFamily: 'MaterialIcons')
+                      : Icons.check_circle,
                   color: color,
-                  size: 32,
+                  size: 33,
                 ),
               ),
               const SizedBox(height: 12),
@@ -61,12 +64,6 @@ class SubjectCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              // Selection Indicator (Visible only when selected)
-              if (isSelected)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                  child: Icon(Icons.check_circle, color: color, size: 20),
-                ),
             ],
           ),
         ),

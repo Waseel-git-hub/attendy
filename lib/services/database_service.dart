@@ -85,6 +85,28 @@ class DatabaseService {
             isExtraClass: isExtraClass));
   }
 
+  /// Bulk marks all 'Not Marked' lectures for a specific date as 'Present'
+  static Future<void> markAllLecturesForDay({
+    required DateTime date,
+    required String targetStatus,
+  }) async {
+    // 1. Fetch all lectures from the database box
+    final allLectures = lectureBox.values.toList();
+
+    // 2. Filter for lectures that happen on the exact same calendar day and are currently 'Not Marked'
+    final targets = allLectures.where((lecture) {
+      final bool isSameDay = lecture.date.year == date.year &&
+          lecture.date.month == date.month &&
+          lecture.date.day == date.day;
+      return isSameDay;
+    }).toList();
+
+    // 3. Sequential update execution to keep cached counters accurate
+    for (var lecture in targets) {
+      await updateAttendance(lecture: lecture, newStatus: targetStatus);
+    }
+  }
+
   //Generate Lecture From Timetable
   static Future<void> generateLecturesForDate(DateTime date) async {
     int weekday = date.weekday;
@@ -113,55 +135,82 @@ class DatabaseService {
     String statusFilter = "All",
     bool oldestFirst = false,
   }) {
-    // 1. All lectures
+    // All lectures
     Iterable<Lecture> query = lectureBox.values;
 
-    // 2. Filter by Subject ID
+    // Subject ID
     if (subjectID != null) {
       query =
           query.where((l) => l.subjectID.toString() == subjectID.toString());
     }
 
-    // 3. Filter by Exact Date
+    // Exact Date
     if (specificDate != null) {
       final targetDateStr = DateFormat('yyyy-MM-dd').format(specificDate);
       query = query.where(
           (l) => DateFormat('yyyy-MM-dd').format(l.date) == targetDateStr);
     }
 
-    // 4. Filter by Month/Year
-    if (filterMonth != null && specificDate == null) {
-      final targetYear = filterMonth.year;
-      final targetMonthValue = filterMonth.month;
-      query = query.where(
-          (l) => l.date.year == targetYear && l.date.month == targetMonthValue);
+    // Month
+    if (filterMonth != null) {
+      query = query.where((l) =>
+          l.date.year == filterMonth.year && l.date.month == filterMonth.month);
     }
 
-    // 5. Filter by Attendance Status
+    // Attendance Status
     if (statusFilter != "All") {
       query = query
           .where((l) => l.status.toLowerCase() == statusFilter.toLowerCase());
     }
-    List<Lecture> results = query.toList();
+    List<Lecture> lectures = query.toList();
 
-    if (oldestFirst) {
-      results.sort((a, b) => (a.startHour * 60 + a.startMinute)
-          .compareTo(b.startHour * 60 + b.startMinute));
-    } else {
-      results.sort((a, b) => (b.date).compareTo(a.date));
-    }
-    return results;
+    lectures.sort((a, b) {
+      int dateCompare =
+          oldestFirst ? a.date.compareTo(b.date) : b.date.compareTo(a.date);
+      if (dateCompare != 0) return dateCompare;
+      int timeA = (a.startHour * 60) + a.startMinute;
+      int timeB = (b.startHour * 60) + b.startMinute;
+
+      return timeA.compareTo(timeB);
+    });
+    return lectures;
   }
 
 //-------------------TIMETABLE------------------------
 
-  // Check if Lecture already exists
-  static bool _checkCollision(
-      {required int day,
-      required int start,
-      required int end,
-      dynamic hiveID}) {
+  static Future<void> deleteTimetableEntry(TimetableEntry entry) async {
+    if (!entry.isInBox) return;
+
+    // 1. Fetch upcoming unmarked lecture copies corresponding to this timetable structure
+    final DateTime todayStart =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
+    final lecturesToRemove = lectureBox.values.where((lecture) {
+      return lecture.subjectID == entry.subjectID &&
+          lecture.startHour == entry.startHour &&
+          lecture.startMinute == entry.startMinute &&
+          lecture.status == 'Not Marked' &&
+          lecture.date.compareTo(todayStart) >= 0;
+    }).toList();
+
+    // 2. Clear out those matching future lecture records
+    for (var lecture in lecturesToRemove) {
+      await lecture.delete();
+    }
+
+    // 3. Delete the root template block from the timetable box
+    await entry.delete();
+  }
+
+// Check if Lecture already exists
+  static bool _checkCollision({
+    required int day,
+    required int start,
+    required int end,
+    dynamic hiveID,
+  }) {
     return timetableBox.values.any((existing) {
+      // Safely skips comparison if we are editing this exact entry
       if (hiveID != null && existing.key == hiveID) return false;
       if (existing.dayOfWeek != day) return false;
 
@@ -179,9 +228,15 @@ class DatabaseService {
     int newStart = (entry.startHour * 60) + entry.startMinute;
     int newEnd = (entry.endHour * 60) + entry.endMinute;
 
-    if (_checkCollision(day: entry.dayOfWeek, start: newStart, end: newEnd)) {
+    if (_checkCollision(
+      day: entry.dayOfWeek,
+      start: newStart,
+      end: newEnd,
+      hiveID: hiveKey,
+    )) {
       return "Time Clash: Slot already taken!";
     }
+
     try {
       if (hiveKey != null) {
         await timetableBox.put(hiveKey, entry);

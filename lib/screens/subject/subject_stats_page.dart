@@ -113,13 +113,15 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
+            onPressed: () async {
+              final result = await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => AddSubjectScreen(subject: _subject),
                 ),
               );
+              if (result == true) {
+                setState(() {});
+              }
             },
           )
         ],
@@ -203,6 +205,95 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHigh,
+                border: Border.all(
+                    color: theme.colorScheme.onSurface.withOpacity(0.1)),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 1. LEFT SIDE: Squircle Icon Container with subtle tinted background
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Color(subject.colorValue)
+                          .withOpacity(0.15), // Tinted background
+                      borderRadius:
+                          BorderRadius.circular(16), // Rounded square look
+                    ),
+                    child: Center(
+                      child: Icon(
+                        IconData(subject.iconCodePoint,
+                            fontFamily: 'MaterialIcons'),
+                        size: 48,
+                        color: Color(subject
+                            .colorValue), // Vibrant icon accent matching chosen color
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+
+                  // 2. RIGHT SIDE: Subject Text Details Hierarchy
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Subject Code/Short Name (e.g., Chem)
+                        Center(
+                          child: Text(
+                            subject.name,
+                            style: TextStyle(
+                              color: colorScheme.onSurface,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+                        // Minimum Attendance Row with Shield Icon
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Minimum \nAttendance",
+                              style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              ':',
+                              style: TextStyle(fontSize: 19),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              "${subject.minAttend}%",
+                              style: TextStyle(
+                                color: Color(subject.colorValue),
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1191,9 +1282,9 @@ class CustomLineChart extends StatelessWidget {
           width: double.infinity,
           child: CustomPaint(
             painter: LineGraphPainter(
-              data: dataPoints,
-              accentColor: theme.colorScheme.primary,
-            ),
+                data: dataPoints,
+                accentColor: theme.colorScheme.primary,
+                theme: theme),
           ),
         ),
       ],
@@ -1204,18 +1295,20 @@ class CustomLineChart extends StatelessWidget {
 class LineGraphPainter extends CustomPainter {
   final List<Map<String, dynamic>> data;
   final Color accentColor;
-
-  LineGraphPainter({required this.data, required this.accentColor});
+  final ThemeData theme;
+  LineGraphPainter(
+      {required this.data, required this.accentColor, required this.theme});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final colorScheme = theme.colorScheme;
     if (data.isEmpty) return;
-
     final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
 
     final double paddingLeft = 40.0;
     final double paddingRight = 20.0;
-    final double paddingTop = 20.0;
+    final double paddingTop =
+        25.0; // Extra padding headroom for point percentage tags
     final double paddingBottom = 25.0;
 
     final double chartWidth = size.width - paddingLeft - paddingRight;
@@ -1224,7 +1317,7 @@ class LineGraphPainter extends CustomPainter {
     // A. DRAW BACKGROUND GRID LINES
     final int gridDivisions = 4;
     final Paint gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.04)
+      ..color = colorScheme.onSurface.withOpacity(0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -1232,88 +1325,114 @@ class LineGraphPainter extends CustomPainter {
       double ratio = i / gridDivisions;
       double y = paddingTop + chartHeight * (1 - ratio);
 
-      canvas.drawLine(Offset(paddingLeft, y),
-          Offset(size.width - paddingRight, y), gridPaint);
+      canvas.drawLine(
+        Offset(paddingLeft, y),
+        Offset(size.width - paddingRight, y),
+        gridPaint,
+      );
 
       textPainter.text = TextSpan(
         text: "${(ratio * 100).round()}%",
-        style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10),
+        style: TextStyle(
+            color: colorScheme.onSurface.withOpacity(0.5), fontSize: 10),
       );
       textPainter.layout();
       textPainter.paint(canvas, Offset(0, y - textPainter.height / 2));
     }
 
     // B. CALCULATE X & Y PLOTTING POINTS
-    double stepX = chartWidth / (data.length - 1);
+    // 🛠️ FIX: Safe handling of single data point edge-cases to prevent division-by-zero crashes
+    double stepX = data.length > 1 ? chartWidth / (data.length - 1) : 0.0;
     List<Offset> points = [];
 
     for (int i = 0; i < data.length; i++) {
-      double x = paddingLeft + (i * stepX);
+      // If there's only 1 point, position it right in the horizontal center of the chart space
+      double x = data.length > 1
+          ? paddingLeft + (i * stepX)
+          : paddingLeft + (chartWidth / 2);
+
       double valueRatio = data[i]["ratio"] ?? 0.0;
       double y = paddingTop + chartHeight * (1 - valueRatio);
       points.add(Offset(x, y));
     }
 
-    // C. DRAW CONNECTING TREND LINE
+// C. DRAW CONNECTING TREND LINE
     final Paint linePaint = Paint()
       ..color = accentColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
 
-    final Path path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (int i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
-    }
-    canvas.drawPath(path, linePaint);
+    if (points.length > 1) {
+      final Path path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, linePaint);
+    } else if (points.length == 1) {
+      final Paint singlePointLinePaint = Paint()
+        ..color = accentColor.withOpacity(.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
 
+      canvas.drawLine(
+        Offset(paddingLeft, points.first.dy),
+        Offset(size.width - paddingRight, points.first.dy),
+        singlePointLinePaint,
+      );
+    }
     // D. DRAW LABELS & DOT NODES
     final Paint dotOuterPaint = Paint()
       ..color = accentColor
       ..style = PaintingStyle.fill;
     final Paint dotInnerPaint = Paint()
-      ..color = const Color(0xFF1E1E24)
+      ..color = colorScheme.surfaceContainerHigh
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < points.length; i++) {
       final offset = points[i];
       final int rawPercent = ((data[i]["ratio"] ?? 0.0) * 100).round();
 
-      // Outer & Inner rings for that clean "hollow dot" aesthetic from your screenshot
+      // Outer & Inner rings for hollow dot alignment
       canvas.drawCircle(offset, 5.0, dotOuterPaint);
       canvas.drawCircle(offset, 2.5, dotInnerPaint);
 
       // Percentage numbers directly above nodes
       textPainter.text = TextSpan(
         text: "$rawPercent%",
-        style: const TextStyle(
-            color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 11,
+            fontWeight: FontWeight.bold),
       );
       textPainter.layout();
       textPainter.paint(
-          canvas, Offset(offset.dx - textPainter.width / 2, offset.dy - 20));
+        canvas,
+        Offset(offset.dx - textPainter.width / 2, offset.dy - 18),
+      );
 
       // Month text labels directly below
+      final bool isLastItem = (i == data.length - 1);
       textPainter.text = TextSpan(
         text: data[i]["month"],
         style: TextStyle(
-          color: i == data.length - 1
-              ? accentColor
-              : Colors.white.withOpacity(0.4),
+          color:
+              isLastItem ? accentColor : colorScheme.onSurface.withOpacity(0.7),
           fontSize: 11,
-          fontWeight:
-              i == data.length - 1 ? FontWeight.bold : FontWeight.normal,
+          fontWeight: isLastItem ? FontWeight.bold : FontWeight.normal,
         ),
       );
       textPainter.layout();
       textPainter.paint(
-          canvas,
-          Offset(offset.dx - textPainter.width / 2,
-              size.height - textPainter.height));
+        canvas,
+        Offset(offset.dx - textPainter.width / 2,
+            size.height - textPainter.height),
+      );
     }
   }
 
-  // Force repaint true for testing/hot-reloading layout mock configurations
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant LineGraphPainter oldDelegate) {
+    return oldDelegate.data != data || oldDelegate.accentColor != accentColor;
+  }
 }
