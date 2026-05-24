@@ -50,7 +50,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
           minute: widget.prevEntry!.startMinute);
       _endTime = TimeOfDay(
           hour: widget.prevEntry!.endHour, minute: widget.prevEntry!.endMinute);
-      _selectedSubjectId = widget.prevEntry!.subjectId;
+      _selectedSubjectId = widget.prevEntry!.subjectID;
       _roomController.text = widget.prevEntry!.roomNo;
       _isEndTimeManual = true;
     } else {
@@ -306,7 +306,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     }
 
     final newEntry = TimetableEntry(
-      subjectId: _selectedSubjectId,
+      subjectID: _selectedSubjectId,
       dayOfWeek: _selectedDay,
       startHour: _startTime.hour,
       startMinute: _startTime.minute,

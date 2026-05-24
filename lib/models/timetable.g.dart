@@ -23,7 +23,7 @@ class TimetableEntryAdapter extends TypeAdapter<TimetableEntry> {
       endHour: fields[3] as int,
       endMinute: fields[4] as int,
       roomNo: fields[5] as String,
-      subjectId: fields[6] as dynamic,
+      subjectID: fields[6] as dynamic,
     );
   }
 
@@ -44,7 +44,7 @@ class TimetableEntryAdapter extends TypeAdapter<TimetableEntry> {
       ..writeByte(5)
       ..write(obj.roomNo)
       ..writeByte(6)
-      ..write(obj.subjectId);
+      ..write(obj.subjectID);
   }
 
   @override

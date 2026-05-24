@@ -4,8 +4,10 @@ import '../main.dart';
 //  MODELS
 //  SCREENS
 //  SERVICE
+import '../../services/backup_service.dart';
 import '../../services/AppTheme.dart';
 //  WIGDETS
+import '../widgets/bug_sheet.dart';
 //------------------------------------------------------------------------------
 
 class SettingsScreen extends StatefulWidget {
@@ -16,8 +18,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  double _minAttendance = 75.0; // Default
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       "Theme Mode",
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 5),
                     SizedBox(
                       width: double.infinity,
                       child: SegmentedButton<ThemeMode>(
@@ -91,40 +91,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             onTap: () {},
           ),
-          _buildSectionHeader("Academic Goals"),
-          ListTile(
-            title: const Text("Minimum Attendance Target"),
-            subtitle: Text("${_minAttendance.toInt()}%"),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(
-                value: _minAttendance,
-                min: 50,
-                max: 100,
-                divisions: 10,
-                label: "${_minAttendance.toInt()}%",
-                onChanged: (value) {
-                  setState(() => _minAttendance = value);
-                  // Save this value to SharedPreferences/Hive here
-                },
-              ),
-            ),
-          ),
+
           const Divider(),
           _buildSectionHeader("Data Management"),
           ListTile(
-            leading: const Icon(Icons.delete_sweep, color: Colors.redAccent),
-            title: const Text("Reset All Data"),
-            subtitle: const Text("Clear all lectures and attendance stats"),
-            onTap: () => _showResetDialog(),
+            leading: const Icon(Icons.backup),
+            title: const Text("Backup Data"),
+            subtitle: const Text("Backup all lectures and attendance stats"),
+            onTap: () async {
+              await BackupService.exportBackup();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Backup file ready to share!")),
+              );
+            },
           ),
+          const SizedBox(height: 6),
+          ListTile(
+            leading: Icon(Icons.restore),
+            title: Text('Restore Data'),
+            subtitle: Text('Import existing lectures and attendance stats'),
+            onTap: () async {
+              bool success = await BackupService.importBackup();
+              if (success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text("Database profile restored successfully!")),
+                );
+              }
+            },
+          ),
+
           const Divider(),
           _buildSectionHeader("About"),
-          const ListTile(
+          ListTile(
             leading: Icon(Icons.info_outline),
-            title: Text("Version"),
-            trailing: Text("1.0.0"),
+            title: const Text("Version"),
+            trailing: Text("0.0.1"),
           ),
+          ListTile(
+            leading: Icon(Icons.dangerous, color: Colors.redAccent.shade200),
+            title: const Text('Report'),
+            subtitle: const Text('Reports bugs and give Feedback'),
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (context) => const BugReportSheet(),
+              );
+            },
+          )
         ],
       ),
     );
@@ -141,30 +159,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: Colors.blueAccent,
           letterSpacing: 1.2,
         ),
-      ),
-    );
-  }
-
-  void _showResetDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Are you sure?"),
-        content: const Text("This will permanently delete all your records."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () async {
-              // Call your DatabaseService.clearAllData() logic
-              Navigator.pop(context);
-            },
-            child:
-                const Text("Reset", style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
       ),
     );
   }

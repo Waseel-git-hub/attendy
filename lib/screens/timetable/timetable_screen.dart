@@ -276,7 +276,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
   // --- POSITIONING LOGIC ---
 
   Widget _buildPositionedBlock(TimetableEntry entry) {
-    final Subject? subject = DatabaseService.getSubjectById(entry.subjectId);
+    final Subject? subject = DatabaseService.getSubjectById(entry.subjectID);
 
     final double top = ((entry.startHour - startHour) * hourHeight) +
         (entry.startMinute / 60 * hourHeight);

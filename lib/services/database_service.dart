@@ -97,10 +97,10 @@ class DatabaseService {
 
     for (var entry in dayTemplate) {
       String uid =
-          "${dateString}_${entry.subjectId}_${entry.startHour}${entry.startMinute}";
+          "${dateString}_${entry.subjectID}_${entry.startHour}${entry.startMinute}";
 
       if (!lectureBox.containsKey(uid)) {
-        lectureInput(entry.subjectId, date, entry.startHour, entry.startMinute,
+        lectureInput(entry.subjectID, date, entry.startHour, entry.startMinute,
             entry.endHour, entry.endMinute, 'Not Marked', entry.roomNo);
       }
     }
