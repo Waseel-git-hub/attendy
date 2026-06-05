@@ -154,17 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLectureList(ThemeData theme) {
     final colorScheme = theme.colorScheme;
-    return FutureBuilder(
-      // 1. Trigger the generation first
-      future: DatabaseService.generateLecturesForDate(_selectedDate),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        // 2. Now that generation is done, fetch the sorted list
+    return ValueListenableBuilder(
+      valueListenable: DatabaseService.lectureBox.listenable(),
+      builder: (context, Box box, _) {
         final List<Lecture> lectures =
             DatabaseService.getLectures(specificDate: _selectedDate);
 
@@ -300,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: "Mark all for today",
               onSelected: (String status) async {
                 // 1. Trigger the bulk update database execution with the selected choice
-                await DatabaseService.markAllLecturesForDay(
+                await DatabaseService.markAllLecturesForDate(
                   date: _selectedDate,
                   targetStatus: status,
                 );

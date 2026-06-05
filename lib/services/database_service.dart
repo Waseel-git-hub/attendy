@@ -6,6 +6,8 @@ import '../models/attendance.dart';
 import '../models/lecture.dart';
 import '../models/subject.dart';
 import '../models/timetable.dart';
+import '../models/semester.dart';
+import '../models/DTO/draft.dart';
 //------------------------------------------------------------------------------
 
 class DatabaseService {
@@ -13,6 +15,8 @@ class DatabaseService {
   static late Box<Lecture> lectureBox;
   static late Box<TimetableEntry> timetableBox;
   static late Box<AttendanceCount> attendanceBox;
+  static late Box<Semester> semesterBox;
+  static late Box settingsBox;
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -22,14 +26,18 @@ class DatabaseService {
     Hive.registerAdapter(LectureAdapter());
     Hive.registerAdapter(TimetableEntryAdapter());
     Hive.registerAdapter(AttendanceAdapter());
+    Hive.registerAdapter(SemesterAdapter());
 
     // Open Boxes
+    settingsBox = await Hive.openBox('settingsBox');
     subjectBox = await Hive.openBox<Subject>('subjects');
     lectureBox = await Hive.openBox<Lecture>('lectures');
     timetableBox = await Hive.openBox<TimetableEntry>('timetable');
     attendanceBox = await Hive.openBox<AttendanceCount>('attendanceBox');
+    semesterBox = await Hive.openBox<Semester>('semesters');
   }
 
+//
 //-------------------SUBJECT------------------------
 
   // Add or Update Subject
@@ -42,21 +50,53 @@ class DatabaseService {
     }
   }
 
-  // Get a specific subject by its ID (key)
+  // Hive Key --> Subject
   static Subject? getSubjectById(dynamic id) {
     if (id == null) return null;
     return subjectBox.get(id);
   }
 
-  // Delete Subject and associated assignments
+  // Delete Subject + {Timetable + Lectures + Attend}
   static Future<void> deleteSubject(dynamic subjectId) async {
-    await subjectBox.delete(subjectId); // delete subject
+    final List<dynamic> timetableKeys = [];
+    final List<dynamic> lectureKeys = [];
+    final List<dynamic> attendanceKeys = [];
+
+    for (var key in timetableBox.keys) {
+      final entry = timetableBox.get(key);
+      if (entry != null && entry.subjectID == subjectId) {
+        timetableKeys.add(key);
+      }
+    }
+    if (timetableKeys.isNotEmpty) await timetableBox.deleteAll(timetableKeys);
+
+    for (var key in lectureBox.keys) {
+      final lecture = lectureBox.get(key);
+      if (lecture != null && lecture.subjectID == subjectId) {
+        lectureKeys.add(key);
+      }
+    }
+    if (lectureKeys.isNotEmpty) await lectureBox.deleteAll(lectureKeys);
+
+    for (var key in attendanceBox.keys) {
+      final attendance = attendanceBox.get(key);
+      if (attendance!.subjectID == subjectId) {
+        attendanceKeys.add(key);
+      }
+    }
+    if (attendanceKeys.isNotEmpty) {
+      await attendanceBox.deleteAll(attendanceKeys);
+    }
+
+    await subjectBox.delete(subjectId);
   }
 
 //-------------------LECTIURES------------------------
 
-  static Future<void> lectureInput(
+  // Lecture --> Hive or Lecture
+  static Future<Lecture?> lectureInput(
       dynamic subjectID,
+      dynamic semesterID,
       DateTime date,
       int startHour,
       int startMinute,
@@ -65,28 +105,36 @@ class DatabaseService {
       String status,
       String roomNo,
       {bool isExtraClass = false,
-      String lectureUID = ''}) async {
-    if (lectureUID == '')
+      String lectureUID = '',
+      bool save = true}) async {
+    if (lectureUID == '') {
       lectureUID =
-          "${DateFormat('yyyy-MM-dd').format(date)}_${subjectID}_${startHour}${startMinute}";
+          "${DateFormat('yyyy-MM-dd').format(date)}_${subjectID}_$startHour$startMinute";
+    }
 
-    await lectureBox.put(
-        lectureUID,
-        Lecture(
-            lectureUID: lectureUID,
-            subjectID: subjectID,
-            date: date,
-            startHour: startHour,
-            startMinute: startMinute,
-            endHour: endHour,
-            endMinute: endMinute,
-            roomNo: roomNo,
-            status: status,
-            isExtraClass: isExtraClass));
+    final newLecture = Lecture(
+        lectureUID: lectureUID,
+        subjectID: subjectID,
+        semesterID: semesterID,
+        date: date,
+        startHour: startHour,
+        startMinute: startMinute,
+        endHour: endHour,
+        endMinute: endMinute,
+        roomNo: roomNo,
+        status: status,
+        isExtraClass: isExtraClass);
+
+    // Normal app flow saves immediately
+    if (save) {
+      await lectureBox.put(lectureUID, newLecture);
+      return null;
+    }
+    return newLecture;
   }
 
-  /// Bulk marks all 'Not Marked' lectures for a specific date as 'Present'
-  static Future<void> markAllLecturesForDay({
+  // Bulk mark
+  static Future<void> markAllLecturesForDate({
     required DateTime date,
     required String targetStatus,
   }) async {
@@ -104,27 +152,6 @@ class DatabaseService {
     // 3. Sequential update execution to keep cached counters accurate
     for (var lecture in targets) {
       await updateAttendance(lecture: lecture, newStatus: targetStatus);
-    }
-  }
-
-  //Generate Lecture From Timetable
-  static Future<void> generateLecturesForDate(DateTime date) async {
-    int weekday = date.weekday;
-    String dateString = DateFormat('yyyy-MM-dd').format(date);
-
-    // Get the templates for this day
-    List<TimetableEntry> dayTemplate = timetableBox.values
-        .where((entry) => entry.dayOfWeek == weekday)
-        .toList();
-
-    for (var entry in dayTemplate) {
-      String uid =
-          "${dateString}_${entry.subjectID}_${entry.startHour}${entry.startMinute}";
-
-      if (!lectureBox.containsKey(uid)) {
-        lectureInput(entry.subjectID, date, entry.startHour, entry.startMinute,
-            entry.endHour, entry.endMinute, 'Not Marked', entry.roomNo);
-      }
     }
   }
 
@@ -176,6 +203,87 @@ class DatabaseService {
     return lectures;
   }
 
+  // Shared core generator engine
+  static Future<Map<String, Lecture>> _buildLectureBatch({
+    required DateTime start,
+    required DateTime end,
+    required List<TimetableEntry> templates,
+  }) async {
+    final Map<String, Lecture> batch = {};
+    DateTime processingDate = DateTime(start.year, start.month, start.day);
+    final DateTime stopDate = DateTime(end.year, end.month, end.day);
+
+    while (!processingDate.isAfter(stopDate)) {
+      int weekday = processingDate.weekday;
+      String dateString = DateFormat('yyyy-MM-dd').format(processingDate);
+      final dayTemplates = templates.where((e) => e.dayOfWeek == weekday);
+
+      for (var entry in dayTemplates) {
+        String uid =
+            "${dateString}_${entry.subjectID}_${entry.startHour}${entry.startMinute}";
+
+        if (!lectureBox.containsKey(uid) && !batch.containsKey(uid)) {
+          final Lecture? lecture = await lectureInput(
+            entry.subjectID,
+            entry.semesterID,
+            processingDate,
+            entry.startHour,
+            entry.startMinute,
+            entry.endHour,
+            entry.endMinute,
+            'Not Marked',
+            entry.roomNo,
+            lectureUID: uid,
+            save: false,
+          );
+          if (lecture != null) batch[uid] = lecture;
+        }
+      }
+      processingDate = processingDate.add(const Duration(days: 1));
+    }
+    return batch;
+  }
+
+  // TimeTable --> Lecture
+  static Future<void> generateAllLecturesForSemester({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final templates = timetableBox.values.toList();
+    final batchData = await _buildLectureBatch(
+        start: startDate, end: endDate, templates: templates);
+
+    if (batchData.isNotEmpty) await lectureBox.putAll(batchData);
+  }
+
+// 2. Mid-semester synchronization patch
+  static Future<void> syncMidSemesterTimetableUpdates({
+    required List<TimetableEntry> newTimetableTemplates,
+    required DateTime semesterEndDate,
+  }) async {
+    final todayStart =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
+    // Clean future unmarked history
+    final keysToRemove = lectureBox.keys.where((key) {
+      final lecture = lectureBox.get(key);
+      return lecture != null &&
+          !lecture.date.isBefore(todayStart) &&
+          lecture.status == 'Not Marked';
+    }).toList();
+
+    if (keysToRemove.isNotEmpty) await lectureBox.deleteAll(keysToRemove);
+
+    // Generate new timeline from today onward
+    final batchData = await _buildLectureBatch(
+        start: todayStart,
+        end: semesterEndDate,
+        templates: newTimetableTemplates);
+
+    if (batchData.isNotEmpty) await lectureBox.putAll(batchData);
+  }
+
+//
 //-------------------TIMETABLE------------------------
 
   static Future<void> deleteTimetableEntry(TimetableEntry entry) async {
@@ -202,53 +310,7 @@ class DatabaseService {
     await entry.delete();
   }
 
-// Check if Lecture already exists
-  static bool _checkCollision({
-    required int day,
-    required int start,
-    required int end,
-    dynamic hiveID,
-  }) {
-    return timetableBox.values.any((existing) {
-      // Safely skips comparison if we are editing this exact entry
-      if (hiveID != null && existing.key == hiveID) return false;
-      if (existing.dayOfWeek != day) return false;
-
-      int exStart = (existing.startHour * 60) + existing.startMinute;
-      int exEnd = (existing.endHour * 60) + existing.endMinute;
-
-      return start < exEnd && end > exStart;
-    });
-  }
-
-  static Future<String?> saveTimetableEntry({
-    required TimetableEntry entry,
-    dynamic hiveKey,
-  }) async {
-    int newStart = (entry.startHour * 60) + entry.startMinute;
-    int newEnd = (entry.endHour * 60) + entry.endMinute;
-
-    if (_checkCollision(
-      day: entry.dayOfWeek,
-      start: newStart,
-      end: newEnd,
-      hiveID: hiveKey,
-    )) {
-      return "Time Clash: Slot already taken!";
-    }
-
-    try {
-      if (hiveKey != null) {
-        await timetableBox.put(hiveKey, entry);
-      } else {
-        await timetableBox.add(entry);
-      }
-      return null;
-    } catch (e) {
-      return "Database Error: Could not save.";
-    }
-  }
-
+//
 //-------------------ATTENDANCE------------------------
 
   static AttendanceCount getAttendance(dynamic subjectID, String monthKey) {
@@ -333,5 +395,216 @@ class DatabaseService {
       int canSkip = ((present - target * total) / target).floor();
       return -canSkip;
     }
+  }
+
+//---------------------SEMESTER--------------------------
+
+  static bool hasAnySemesterHistory() {
+    return semesterBox.isNotEmpty;
+  }
+
+  static bool hasActiveSemester() {
+    if (semesterBox.isEmpty) return false;
+
+    final currentSemester = semesterBox.values.first;
+    final DateTime today = DateTime.now();
+    final DateTime todayStart = DateTime(today.year, today.month, today.day);
+    final DateTime end = DateTime(
+      currentSemester.endDate.year,
+      currentSemester.endDate.month,
+      currentSemester.endDate.day,
+    );
+
+    return !todayStart.isAfter(end);
+  }
+
+  // Helper to fetch the currently active semester ID
+  static dynamic getActiveSemesterId() {
+    try {
+      final activeSem =
+          semesterBox.values.firstWhere((sem) => sem.isActive == true);
+      return activeSem.key; // Hive auto-increment int or dynamic key
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> commitInitialSetup(SetupDraft draft) async {
+    // 2. Mark any existing historical semesters as inactive
+    for (var sem in semesterBox.values) {
+      if (sem.isActive) {
+        sem.isActive = false;
+        await sem.save();
+      }
+    }
+
+    // 3. Create and Save the real Semester object
+    final newSemester = Semester(
+      name: draft.semesterName,
+      startDate: draft.startDate!,
+      endDate: draft.endDate!,
+      isActive: true,
+    );
+    // Adding to the box generates the auto-increment `key`
+    final dynamic semesterKey = await semesterBox.add(newSemester);
+
+    // 4. Map SubjectDraft items to persistent Subject models
+    // We maintain a map linking: temporaryId string -> newly generated Hive subject int/dynamic key
+    final Map<String, dynamic> subjectKeyMap = {};
+
+    for (var subjectDraft in draft.subjects) {
+      final realSubject = Subject(
+        name: subjectDraft.name,
+        semesterID: semesterKey,
+        iconCodePoint: subjectDraft.iconCodePoint,
+        colorValue: subjectDraft.colorValue,
+        minAttend: subjectDraft.minAttend,
+      );
+
+      final dynamic subjectKey = await subjectBox.add(realSubject);
+      subjectKeyMap[subjectDraft.temporaryId] = subjectKey;
+
+      // Initialize an "Overall" attendance summary track counter for each subject
+      final overallCounter = AttendanceCount(
+        subjectID: subjectKey,
+        monthKey: 'Overall',
+        presentCount: 0,
+        totalCount: 0,
+      );
+      await attendanceBox.add(overallCounter);
+    }
+
+    // 5. Map TimetableEntryDraft items into real permanent Timetable template rows
+    for (var slotDraft in draft.timetableSlots) {
+      if (slotDraft.subjectTemporaryId == null) continue;
+
+      // Look up what genuine Hive key corresponds to this entry's temporary ID
+      final dynamic realSubjectKey =
+          subjectKeyMap[slotDraft.subjectTemporaryId!];
+
+      final realTimetableEntry = TimetableEntry(
+        dayOfWeek: slotDraft.dayOfWeek,
+        startHour: slotDraft.startHour,
+        startMinute: slotDraft.startMinute,
+        endHour: slotDraft.endHour,
+        endMinute: slotDraft.endMinute,
+        roomNo: slotDraft.roomNo,
+        subjectID: realSubjectKey,
+        semesterID: semesterKey,
+      );
+      await timetableBox.add(realTimetableEntry);
+    }
+
+    // 6. AUTO-GENERATE LECTURE SKELETON HISTORY TRACKS
+    // Loop step by step through every single date spanning from semester start to end
+    DateTime currentDate = _stripTime(draft.startDate!);
+    final DateTime lastDate = _stripTime(draft.endDate!);
+
+    final List<Lecture> autoGeneratedLectures = [];
+    final Set<String> uniqueMonths = {};
+
+    while (currentDate.isBefore(lastDate) ||
+        currentDate.isAtSameMomentAs(lastDate)) {
+      final int currentDayOfWeek = currentDate.weekday; // 1 = Mon, 7 = Sun
+
+      // Find all schedule template slots matching this day of the week
+      final matchingSlots = draft.timetableSlots
+          .where((slot) => slot.dayOfWeek == currentDayOfWeek);
+
+      for (var slot in matchingSlots) {
+        if (slot.subjectTemporaryId == null) continue;
+
+        final dynamic realSubjectKey = subjectKeyMap[slot.subjectTemporaryId!];
+        final monthKey = DateFormat('yyyy-MM').format(currentDate);
+        uniqueMonths.add(monthKey);
+
+        // Generate a clean, structured composite UID unique to this exact instance loop
+        final String lectureUID =
+            "${realSubjectKey}_${DateFormat('yyyyMMdd').format(currentDate)}_${slot.startHour}:${slot.startMinute}";
+
+        autoGeneratedLectures.add(
+          Lecture(
+            lectureUID: lectureUID,
+            subjectID: realSubjectKey,
+            semesterID: semesterKey,
+            date: currentDate,
+            startHour: slot.startHour,
+            startMinute: slot.startMinute,
+            endHour: slot.endHour,
+            endMinute: slot.endMinute,
+            status:
+                "Not Marked", // Initially setup as pristine, waiting for student interaction
+            roomNo: slot.roomNo,
+            isExtraClass: false,
+          ),
+        );
+      }
+
+      // Progress loop counter forward by exactly 1 calendar day
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+
+    // Bulk-add all the generated schedule slots into the lectures box safely
+    if (autoGeneratedLectures.isNotEmpty) {
+      await lectureBox.addAll(autoGeneratedLectures);
+    }
+
+    // 7. Initialize Monthly Attendance Cache Tracks
+    // To ensure monthly charts load lightning-fast without running dynamic loops later
+    for (final monthKey in uniqueMonths) {
+      for (final realSubjectKey in subjectKeyMap.values) {
+        final monthlyCounter = AttendanceCount(
+          subjectID: realSubjectKey,
+          monthKey: monthKey,
+          presentCount: 0,
+          totalCount: 0,
+        );
+        await attendanceBox.add(monthlyCounter);
+      }
+    }
+  }
+
+  // Clean utility to strip hour/minute noise away from tracking date markers
+  static DateTime _stripTime(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+//------------------------------------------------------------
+
+  static Future<SetupDraft> generateDraftFromProduction() async {
+    final draft = SetupDraft();
+
+    final List<Subject> productionSubjects = subjectBox.values.toList();
+    final List<TimetableEntry> productionEntries = timetableBox.values.toList();
+
+    // Subject --> SubjectDraft
+    for (var prodSubject in productionSubjects) {
+      draft.subjects.add(
+        SubjectDraft(
+          temporaryId: prodSubject.key,
+          name: prodSubject.name,
+          iconCodePoint: prodSubject.iconCodePoint,
+          colorValue: prodSubject.colorValue,
+          minAttend: prodSubject.minAttend,
+        ),
+      );
+    }
+
+    // Timetable entries --> TimetableEntryDrafts
+    for (var entry in productionEntries) {
+      draft.timetableSlots.add(
+        TimetableEntryDraft.create(
+          dayOfWeek: entry.dayOfWeek,
+          startHour: entry.startHour,
+          startMinute: entry.startMinute,
+          endHour: entry.endHour,
+          endMinute: entry.endMinute,
+          roomNo: entry.roomNo,
+          subjectTemporaryId: entry.subjectID,
+        ),
+      );
+    }
+
+    return draft;
   }
 }

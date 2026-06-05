@@ -21,6 +21,45 @@ class SubjectScreen extends StatefulWidget {
 class _SubjectScreenState extends State<SubjectScreen> {
   final Set<dynamic> _selectedIds = {};
 
+  Future<bool> deleteConfirmationDialog(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false, // User must tap a button to dismiss
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Delete Subject?'),
+              content: const Text(
+                'This will delete all associated records',
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel',
+                      style: TextStyle(color: Colors.grey)),
+                  onPressed: () {
+                    Navigator.of(context).pop(false); // Returns false
+                  },
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Delete'),
+                  onPressed: () {
+                    for (var key in _selectedIds) {
+                      DatabaseService.deleteSubject(key);
+                    }
+                    setState(() => _selectedIds.clear());
+                    Navigator.of(context).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
+        ) ??
+        false; // Fallback to false if dismissed via Android back button
+  }
+
   void _toggleSelection(dynamic key) {
     setState(() {
       if (_selectedIds.contains(key)) {
@@ -54,11 +93,25 @@ class _SubjectScreenState extends State<SubjectScreen> {
           if (_selectedIds.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              onPressed: () {
-                for (var key in _selectedIds) {
-                  DatabaseService.deleteSubject(key);
+              onPressed: () async {
+                if (await deleteConfirmationDialog(context)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text('Subject Deleted Successfully'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green[700],
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
                 }
-                setState(() => _selectedIds.clear());
               },
             ),
         ],

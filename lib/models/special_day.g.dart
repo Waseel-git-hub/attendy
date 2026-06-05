@@ -1,44 +1,38 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'subject.dart';
+part of 'special_day.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class SubjectAdapter extends TypeAdapter<Subject> {
+class SpecialDayAdapter extends TypeAdapter<SpecialDay> {
   @override
-  final int typeId = 0;
+  final int typeId = 6;
 
   @override
-  Subject read(BinaryReader reader) {
+  SpecialDay read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Subject(
-      name: fields[0] as String,
-      semesterID: fields[1] as dynamic,
-      iconCodePoint: fields[2] as int,
-      colorValue: fields[3] as int,
-      minAttend: fields[4] as int,
+    return SpecialDay(
+      date: fields[0] as DateTime,
+      reason: fields[1] as String,
+      isLeave: fields[2] as bool,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Subject obj) {
+  void write(BinaryWriter writer, SpecialDay obj) {
     writer
-      ..writeByte(5)
-      ..writeByte(0)
-      ..write(obj.name)
-      ..writeByte(1)
-      ..write(obj.semesterID)
-      ..writeByte(2)
-      ..write(obj.iconCodePoint)
       ..writeByte(3)
-      ..write(obj.colorValue)
-      ..writeByte(4)
-      ..write(obj.minAttend);
+      ..writeByte(0)
+      ..write(obj.date)
+      ..writeByte(1)
+      ..write(obj.reason)
+      ..writeByte(2)
+      ..write(obj.isLeave);
   }
 
   @override
@@ -47,7 +41,7 @@ class SubjectAdapter extends TypeAdapter<Subject> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SubjectAdapter &&
+      other is SpecialDayAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

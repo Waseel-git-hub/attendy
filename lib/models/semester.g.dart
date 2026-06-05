@@ -1,44 +1,41 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'subject.dart';
+part of 'semester.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class SubjectAdapter extends TypeAdapter<Subject> {
+class SemesterAdapter extends TypeAdapter<Semester> {
   @override
-  final int typeId = 0;
+  final int typeId = 5;
 
   @override
-  Subject read(BinaryReader reader) {
+  Semester read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Subject(
+    return Semester(
       name: fields[0] as String,
-      semesterID: fields[1] as dynamic,
-      iconCodePoint: fields[2] as int,
-      colorValue: fields[3] as int,
-      minAttend: fields[4] as int,
+      startDate: fields[1] as DateTime,
+      endDate: fields[2] as DateTime,
+      isActive: fields[3] as bool,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Subject obj) {
+  void write(BinaryWriter writer, Semester obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.semesterID)
+      ..write(obj.startDate)
       ..writeByte(2)
-      ..write(obj.iconCodePoint)
+      ..write(obj.endDate)
       ..writeByte(3)
-      ..write(obj.colorValue)
-      ..writeByte(4)
-      ..write(obj.minAttend);
+      ..write(obj.isActive);
   }
 
   @override
@@ -47,7 +44,7 @@ class SubjectAdapter extends TypeAdapter<Subject> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SubjectAdapter &&
+      other is SemesterAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

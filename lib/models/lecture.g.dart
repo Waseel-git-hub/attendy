@@ -19,40 +19,43 @@ class LectureAdapter extends TypeAdapter<Lecture> {
     return Lecture(
       lectureUID: fields[0] as String,
       subjectID: fields[1] as dynamic,
-      date: fields[2] as DateTime,
-      startHour: fields[3] as int,
-      startMinute: fields[4] as int,
-      endHour: fields[5] as int,
-      endMinute: fields[6] as int,
-      status: fields[7] as String,
-      roomNo: fields[8] as String,
-      isExtraClass: fields[9] as bool,
+      semesterID: fields[2] as dynamic,
+      date: fields[3] as DateTime,
+      startHour: fields[4] as int,
+      startMinute: fields[5] as int,
+      endHour: fields[6] as int,
+      endMinute: fields[7] as int,
+      status: fields[8] as String,
+      roomNo: fields[9] as String,
+      isExtraClass: fields[10] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Lecture obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.lectureUID)
       ..writeByte(1)
       ..write(obj.subjectID)
       ..writeByte(2)
-      ..write(obj.date)
+      ..write(obj.semesterID)
       ..writeByte(3)
-      ..write(obj.startHour)
+      ..write(obj.date)
       ..writeByte(4)
-      ..write(obj.startMinute)
+      ..write(obj.startHour)
       ..writeByte(5)
-      ..write(obj.endHour)
+      ..write(obj.startMinute)
       ..writeByte(6)
-      ..write(obj.endMinute)
+      ..write(obj.endHour)
       ..writeByte(7)
-      ..write(obj.status)
+      ..write(obj.endMinute)
       ..writeByte(8)
-      ..write(obj.roomNo)
+      ..write(obj.status)
       ..writeByte(9)
+      ..write(obj.roomNo)
+      ..writeByte(10)
       ..write(obj.isExtraClass);
   }
 

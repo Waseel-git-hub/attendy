@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 //  MODELS
 import '../../models/subject.dart';
+import '../../models/DTO/draft.dart';
 //  SERVICES
 import '../../services/database_service.dart';
 //------------------------------------------------------------
 
 class AddSubjectScreen extends StatefulWidget {
   final Subject? subject;
+  final bool
+      isOnboardingFlow; // Passed down explicitly from your setup coordinator
+  final dynamic
+      currentSemesterID; // Required when adding subjects post-onboarding directly to a semester
 
-  const AddSubjectScreen({super.key, this.subject});
+  const AddSubjectScreen({
+    super.key,
+    this.subject,
+    this.isOnboardingFlow = false,
+    this.currentSemesterID,
+  });
 
   @override
   State<AddSubjectScreen> createState() => _AddSubjectScreenState();
@@ -16,10 +26,12 @@ class AddSubjectScreen extends StatefulWidget {
 
 class _AddSubjectScreenState extends State<AddSubjectScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  late bool isDuringOnboarding;
   late TextEditingController _nameController;
   late int _selectedIcon;
   late int _selectedColor;
-  late int _minAttendence;
+  late int _minAttendance;
 
   late final List<IconData> _iconOptions = [
     Icons.book_rounded,
@@ -31,6 +43,7 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
     Icons.fitness_center_rounded,
     Icons.music_note_rounded,
   ];
+
   final List<Color> _colorOptions = [
     const Color(0xFF06B6D4), // Electric Cyan
     const Color(0xFF6366F1), // Indigo / Premium Purple
@@ -45,56 +58,74 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
   @override
   void initState() {
     super.initState();
+    isDuringOnboarding = widget.subject == null && widget.isOnboardingFlow;
+
     _nameController = TextEditingController(text: widget.subject?.name ?? "");
     _selectedIcon =
         widget.subject?.iconCodePoint ?? Icons.book_rounded.codePoint;
-    _selectedColor = widget.subject?.colorValue ?? Color(0xFF06B6D4).value;
-    _minAttendence = widget.subject?.minAttend ?? 75;
+    _selectedColor =
+        widget.subject?.colorValue ?? const Color(0xFF06B6D4).value;
+    _minAttendance = widget.subject?.minAttend ?? 75;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   void _saveSubject() async {
-    // Validation
     if (!_formKey.currentState!.validate()) return;
-    if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a subject name")),
+
+    final nameText = _nameController.text.trim();
+
+    // MODE A: Setup Onboarding Draft Injection (Zero writes to disk)
+    if (isDuringOnboarding) {
+      final draft = SubjectDraft(
+        temporaryId: DateTime.now()
+            .millisecondsSinceEpoch
+            .toString(), // 💡 Generates local link key
+        name: nameText,
+        iconCodePoint: _selectedIcon,
+        colorValue: _selectedColor,
+        minAttend: _minAttendance,
       );
+      // Pass the draft back out to our setup loop list screen
+      Navigator.of(context).pop(draft);
       return;
     }
+
+    // MODE B: Standard persistent saving (Dashboard edit / production runtime additions)
     try {
       if (widget.subject != null) {
-        // EDIT MODE
-        widget.subject!.name = _nameController.text.trim();
+        widget.subject!.name = nameText;
         widget.subject!.iconCodePoint = _selectedIcon;
         widget.subject!.colorValue = _selectedColor;
-        widget.subject!.minAttend = _minAttendence;
-        await DatabaseService.saveSubject(widget.subject!);
+        widget.subject!.minAttend = _minAttendance;
+        await widget.subject!.save(); // Native HiveObject update line
       } else {
-        // CREATE MODE
         final newSubject = Subject(
-          name: _nameController.text.trim(),
+          name: nameText,
+          semesterID: widget
+              .currentSemesterID, // 💡 Maps correctly to your Hive structure expectations
           iconCodePoint: _selectedIcon,
           colorValue: _selectedColor,
-          minAttend: _minAttendence,
+          minAttend: _minAttendance,
         );
         await DatabaseService.saveSubject(newSubject);
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
-      debugPrint("Error saving subject: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to save: $e")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save subject database records: $e")),
+      );
     }
   }
 
   void _deleteSubject() async {
     if (widget.subject == null) return;
 
-    // Show a confirmation dialog to prevent accidental clicks
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -110,14 +141,14 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
             style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error),
             onPressed: () async {
-              Navigator.pop(dialogCtx); // Close dialog box modal
+              Navigator.pop(dialogCtx);
 
               // Call delete directly on the Hive Object instance
               await widget.subject!.delete();
 
               if (context.mounted) {
-                Navigator.of(context)
-                    .pop(true); // Return to dashboard with a refresh token
+                Navigator.of(context).pop(
+                    true); // Return to dashboard with a refresh signal token
               }
             },
             child: const Text("Delete"),
@@ -330,7 +361,7 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                   ),
                 ),
                 Text(
-                  "$_minAttendence%",
+                  "$_minAttendance%",
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -352,13 +383,13 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                 inactiveTickMarkColor: colorScheme.onSurface.withOpacity(0.15),
               ),
               child: Slider(
-                value: _minAttendence.toDouble(),
+                value: _minAttendance.toDouble(),
                 min: 0,
                 max: 100,
                 divisions: 20,
                 onChanged: (double value) {
                   setState(() {
-                    _minAttendence = value.toInt();
+                    _minAttendance = value.toInt();
                   });
                 },
               ),

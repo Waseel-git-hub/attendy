@@ -8,16 +8,20 @@ class Subject extends HiveObject {
   String name;
 
   @HiveField(1)
-  int iconCodePoint;
+  dynamic semesterID;
 
   @HiveField(2)
-  int colorValue;
+  int iconCodePoint;
 
   @HiveField(3)
+  int colorValue;
+
+  @HiveField(4)
   int minAttend;
 
   Subject({
     required this.name,
+    required this.semesterID,
     required this.iconCodePoint,
     required this.colorValue,
     this.minAttend = 75,

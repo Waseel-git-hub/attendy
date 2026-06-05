@@ -2,8 +2,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'navigation_menu.dart';
-
+import '../screens/router.dart';
 //  SCREENS
 //  SERVICES
 import '../services/database_service.dart';
@@ -51,7 +50,7 @@ class MainApp extends StatelessWidget {
               theme: AppTheme().lightTheme,
               darkTheme: AppTheme().darkTheme,
               themeMode: currentMode,
-              home: const NavigationMenu(),
+              home: const RootRouter(),
             );
           },
         );

@@ -24,13 +24,14 @@ class TimetableEntryAdapter extends TypeAdapter<TimetableEntry> {
       endMinute: fields[4] as int,
       roomNo: fields[5] as String,
       subjectID: fields[6] as dynamic,
+      semesterID: fields[7] as dynamic,
     );
   }
 
   @override
   void write(BinaryWriter writer, TimetableEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.dayOfWeek)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class TimetableEntryAdapter extends TypeAdapter<TimetableEntry> {
       ..writeByte(5)
       ..write(obj.roomNo)
       ..writeByte(6)
-      ..write(obj.subjectID);
+      ..write(obj.subjectID)
+      ..writeByte(7)
+      ..write(obj.semesterID);
   }
 
   @override

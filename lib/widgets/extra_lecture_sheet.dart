@@ -266,9 +266,12 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
 
                     await DatabaseService.lectureInput(
                       _selectedSubjectId,
+                      'semester', //TODO
                       DateTime(_selectedDate.year, _selectedDate.month,
                           _selectedDate.day),
+
                       _selectedStartTime.hour,
+
                       _selectedStartTime.minute,
                       _selectedEndTime.hour,
                       _selectedEndTime.minute,

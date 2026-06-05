@@ -17,6 +17,8 @@ class TimetableEntry extends HiveObject {
   String roomNo;
   @HiveField(6)
   dynamic subjectID; // Links back to Subject(0)
+  @HiveField(7)
+  dynamic semesterID;
 
   TimetableEntry({
     required this.dayOfWeek,
@@ -26,5 +28,6 @@ class TimetableEntry extends HiveObject {
     required this.endMinute,
     required this.roomNo,
     required this.subjectID,
+    required this.semesterID,
   });
 }

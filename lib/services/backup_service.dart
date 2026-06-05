@@ -25,6 +25,7 @@ class BackupService {
             .map((s) => {
                   'id': s.key, // Hive auto-increment key or unique key
                   'name': s.name,
+                  'semesterID': s.semesterID,
                   'colorValue': s.colorValue,
                   'iconCodePoint': s.iconCodePoint,
                 })
@@ -33,6 +34,7 @@ class BackupService {
             .map((l) => {
                   'lectureUID': l.lectureUID,
                   'subjectID': l.subjectID,
+                  'semesterID': l.semesterID,
                   'date': DateFormat('yyyy-MM-dd').format(l.date),
                   'startHour': l.startHour,
                   'startMinute': l.startMinute,
@@ -111,6 +113,7 @@ class BackupService {
       for (var s in backupData['subjects']) {
         final subject = Subject(
           name: s['name'],
+          semesterID: s['semesterID'],
           colorValue: s['colorValue'],
           iconCodePoint: s['iconCodePoint'],
         );
@@ -122,6 +125,7 @@ class BackupService {
         final lecture = Lecture(
           lectureUID: l['lectureUID'],
           subjectID: l['subjectID'],
+          semesterID: l['semesterID'],
           date: DateFormat('yyyy-MM-dd').parse(l['date']),
           startHour: l['startHour'],
           startMinute: l['startMinute'],
@@ -138,6 +142,7 @@ class BackupService {
       for (var t in backupData['timetable']) {
         final entry = TimetableEntry(
           subjectID: t['subjectID'],
+          semesterID: t['semesterID'],
           dayOfWeek: t['dayOfWeek'],
           startHour: t['startHour'],
           startMinute: t['startMinute'],

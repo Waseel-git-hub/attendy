@@ -34,7 +34,7 @@ class LectureCard extends StatelessWidget {
         monthCount.presentCount);
 
     String insightText = (skippable > 0)
-        ? "Need to attend ${skippable} lecture"
+        ? "Need to attend $skippable lecture"
         : (skippable < 0)
             ? "Can skip ${-skippable} lecture"
             : "Have to attend";

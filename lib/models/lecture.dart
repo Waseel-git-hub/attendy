@@ -11,32 +11,36 @@ class Lecture extends HiveObject {
   dynamic subjectID;
 
   @HiveField(2)
-  DateTime date;
+  dynamic semesterID;
 
   @HiveField(3)
-  int startHour;
+  DateTime date;
 
   @HiveField(4)
-  int startMinute;
+  int startHour;
 
   @HiveField(5)
-  int endHour;
+  int startMinute;
 
   @HiveField(6)
-  int endMinute;
+  int endHour;
 
   @HiveField(7)
-  String status; // Not Marked, Present, Absent, Cancelled
+  int endMinute;
 
   @HiveField(8)
-  String roomNo;
+  String status; // Not Marked, Present, Absent, Cancelled
 
   @HiveField(9)
+  String roomNo;
+
+  @HiveField(10)
   bool isExtraClass;
 
   Lecture({
     required this.lectureUID,
     required this.subjectID,
+    required this.semesterID,
     required this.date,
     required this.startHour,
     required this.startMinute,
