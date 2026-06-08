@@ -1,4 +1,3 @@
-import 'package:Attendy/models/DTO/draft.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 //  MODELS
@@ -410,7 +409,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final double left = visibleDaysBefore * columnWidth;
 
     return SubjectBlock(
-      title: _getShortName(subject?.name) ?? "Unknown",
+      title: _getShortName(subject?.name),
       room: entry.roomNo,
       color: Color(subject?.colorValue ?? 0xFF6366F1),
       top: top,

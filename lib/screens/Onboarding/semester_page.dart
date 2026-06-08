@@ -4,7 +4,7 @@ import '../../models/DTO/draft.dart';
 
 class OnboardingSemesterSetupScreen extends StatefulWidget {
   final SetupDraft setupDraft;
-  final VoidCallback onComplete; // Callback to move to Step 2 (Subjects Setup)
+  final VoidCallback onComplete;
 
   const OnboardingSemesterSetupScreen({
     Key? key,
@@ -69,9 +69,6 @@ class _OnboardingSemesterSetupScreenState
         widget.setupDraft.endDate != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Semester Setup'),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
@@ -86,11 +83,7 @@ class _OnboardingSemesterSetupScreenState
                       color: Theme.of(context).colorScheme.primary,
                     ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Let\'s configure your current semester details to calibrate your auto-generated lecture history tracks.',
-                style: TextStyle(color: Colors.grey, fontSize: 15),
-              ),
+
               const SizedBox(height: 32),
 
               // Semester Name Field
@@ -177,6 +170,10 @@ class _OnboardingSemesterSetupScreenState
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+
+              _buildSubjectSummarySection(),
+
               const SizedBox(height: 40),
 
               // Continue Navigation Control
@@ -194,7 +191,17 @@ class _OnboardingSemesterSetupScreenState
                         );
                         return;
                       }
-                      // Configuration passes verification checks -> Proceed to Subject Setup Screen
+
+                      // Extra guard checking the full draft rules before hitting onComplete
+                      if (!validateFinalSetupDraft(widget.setupDraft)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Setup validation failed. Check your schedule slots.')),
+                        );
+                        return;
+                      }
+
                       widget.onComplete();
                     }
                   },
@@ -232,32 +239,146 @@ class _OnboardingSemesterSetupScreenState
       ],
     );
   }
+
+  // 💡 Subject Summary Helper Widget
+  Widget _buildSubjectSummarySection() {
+    final theme = Theme.of(context);
+    final subjects = widget.setupDraft.subjects;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Subject Summary',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${subjects.length} Total',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (subjects.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border:
+                  Border.all(color: theme.colorScheme.error.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    color: theme.colorScheme.error),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No subjects added yet! Go back to add subjects.',
+                    style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          // Dynamic wrapping grid layout to fit subject rows cleanly
+          Wrap(
+            spacing: 8.0, // horizontal gap between chips
+            runSpacing: 8.0, // vertical gap between rows
+            children: subjects.map((subject) {
+              // Deduce total lecture count for this specific subject draft
+              final int slotCount = widget.setupDraft.timetableSlots
+                  .where(
+                      (slot) => slot.subjectTemporaryId == subject.temporaryId)
+                  .length;
+
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Color(subject.colorValue).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Color(subject.colorValue).withOpacity(0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      IconData(subject.iconCodePoint,
+                          fontFamily: 'MaterialIcons'),
+                      size: 16,
+                      color: Color(subject.colorValue),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      subject.name,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Small badge bubble highlighting the weekly lecture occurrences
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Color(subject.colorValue),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${slotCount}x',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
 }
 
 bool validateFinalSetupDraft(SetupDraft draft) {
-  // 1. Double check Semester Data
   if (draft.semesterName.isEmpty ||
       draft.startDate == null ||
       draft.endDate == null) {
     return false;
   }
-
-  // 2. Must contain at least one valid tracking entity subject
   if (draft.subjects.isEmpty) {
     return false;
   }
-
-  // 3. Prevent empty schedules that break tracking dashboards
   if (draft.timetableSlots.isEmpty) {
     return false;
   }
-
-  // 4. Verify all template blocks are assigned a subject draft target
   for (var entry in draft.timetableSlots) {
     if (entry.subjectTemporaryId == null) {
       return false;
     }
   }
-
   return true;
 }

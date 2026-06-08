@@ -5,6 +5,7 @@ import '../../screens/router.dart';
 import '../Onboarding/semester_page.dart';
 import '../../screens/timetable/timetable_setup.dart';
 import '../Onboarding/subject_page.dart';
+import '../../services/backup_service.dart';
 
 class OnboardingWizardParent extends StatefulWidget {
   const OnboardingWizardParent({Key? key}) : super(key: key);
@@ -68,6 +69,9 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return PopScope(
       // 💡 Crucial: Block native pop if we are deep inside the wizard steps
       canPop: _currentStepIndex == 0,
@@ -85,8 +89,8 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
               // Visual Step Progress Bar indicator line loop block
               LinearProgressIndicator(
                 value: (_currentStepIndex) / 3,
-                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-                color: Theme.of(context).colorScheme.primary,
+                backgroundColor: colorScheme.surfaceVariant,
+                color: colorScheme.primary,
               ),
 
               Expanded(
@@ -95,7 +99,7 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
                   physics:
                       const NeverScrollableScrollPhysics(), // Enforce validation routing steps
                   children: [
-                    _buildIntroPage(),
+                    _buildIntroPage(theme),
                     OnboardingSubjectsSetupScreen(
                       setupDraft: _setupDraft,
                       onNext: () => _navigateToStep(2),
@@ -120,8 +124,8 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
     );
   }
 
-  Widget _buildIntroPage() {
-    final theme = Theme.of(context);
+  Widget _buildIntroPage(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     final bool isReturningUser = DatabaseService.hasAnySemesterHistory();
 
     return Padding(
@@ -130,23 +134,31 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.4),
-              shape: BoxShape.circle,
-            ),
+          ShaderMask(
+            // 1. Define the gradient shape and directions
+            shaderCallback: (Rect bounds) {
+              return LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary,
+                  colorScheme.tertiary, // A second theme color for blending
+                ],
+              ).createShader(bounds);
+            },
+            // 2. Set the blend mode so it only highlights the visible parts of the asset
+            blendMode: BlendMode.srcIn,
+
+            // 3. Place your icon or image asset as the child
             child: isReturningUser
-                ? Icon(
+                ? const Icon(
                     Icons.celebration_rounded,
-                    size: 80,
-                    color: theme.colorScheme.primary,
+                    size: 120,
                   )
                 : Image.asset(
-                    'assets/images/ic_launcher_monochrome.png', // Double check your pubspec.yaml asset path prefix
-                    width: 100,
-                    height: 100,
-                    color: theme.colorScheme.primary,
+                    'assets/images/ic_launcher_monochrome.png',
+                    width: 120,
+                    height: 120,
                   ),
           ),
           const SizedBox(height: 32),
@@ -205,9 +217,7 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 onPressed: () {
-                  SnackBar(
-                    content: Text('Under Dev'),
-                  );
+                  BackupService.importBackup();
                 },
               ),
             ],

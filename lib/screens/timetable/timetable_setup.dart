@@ -58,8 +58,10 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
     );
   }
 
-  void _openAddOrEditBottomSheet(int dayIndex,
+  void _openAddOrEditBottomSheet(ThemeData theme, int dayIndex,
       {TimetableEntryDraft? existingSlot}) {
+    final colorScheme = theme.colorScheme;
+
     dynamic selectedSubjectId = existingSlot?.subjectTemporaryId;
     if (selectedSubjectId == null && widget.setupDraft.subjects.isNotEmpty) {
       selectedSubjectId = widget.setupDraft.subjects.first.temporaryId;
@@ -109,7 +111,6 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF111218),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -160,17 +161,17 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                       const SizedBox(height: 24),
 
                       //  DROPDOWN SELECTION FIELD
-                      const Text("Select Subject",
-                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      Text("Select Subject",
+                          style: TextStyle(
+                              color: colorScheme.onSurface, fontSize: 13)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<dynamic>(
                         value: selectedSubjectId,
-                        dropdownColor: const Color(0xFF16171D),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 15),
+                        dropdownColor: colorScheme.surfaceContainerHigh,
+                        style: const TextStyle(fontSize: 15),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: const Color(0xFF16171D),
+                          fillColor: colorScheme.surfaceContainerHigh,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 14),
                           enabledBorder: OutlineInputBorder(
@@ -196,7 +197,9 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
-                                Text(sub.name),
+                                Text(sub.name,
+                                    style: TextStyle(
+                                        color: colorScheme.onSurface)),
                               ],
                             ),
                           );
@@ -215,9 +218,10 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("Start Time",
+                                Text("Start Time",
                                     style: TextStyle(
-                                        color: Colors.grey, fontSize: 13)),
+                                        color: colorScheme.onSurface,
+                                        fontSize: 13)),
                                 const SizedBox(height: 8),
                                 InkWell(
                                   onTap: () async {
@@ -239,7 +243,7 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14, horizontal: 16),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF16171D),
+                                      color: colorScheme.surfaceContainerHigh,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                           color:
@@ -249,13 +253,11 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                            _formatTime(startTime.hour,
-                                                startTime.minute),
-                                            style: const TextStyle(
-                                                color: Colors.white)),
-                                        const Icon(Icons.access_time_rounded,
-                                            color: Colors.grey, size: 18),
+                                        Text(_formatTime(
+                                            startTime.hour, startTime.minute)),
+                                        Icon(Icons.access_time_rounded,
+                                            color: colorScheme.onSurface,
+                                            size: 18),
                                       ],
                                     ),
                                   ),
@@ -268,9 +270,10 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("End Time",
+                                Text("End Time",
                                     style: TextStyle(
-                                        color: Colors.grey, fontSize: 13)),
+                                        color: colorScheme.onSurface,
+                                        fontSize: 13)),
                                 const SizedBox(height: 8),
                                 InkWell(
                                   onTap: () async {
@@ -289,7 +292,7 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14, horizontal: 16),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF16171D),
+                                      color: colorScheme.surfaceContainerHigh,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                           color:
@@ -300,12 +303,12 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                            _formatTime(
-                                                endTime.hour, endTime.minute),
-                                            style: const TextStyle(
-                                                color: Colors.white)),
-                                        const Icon(Icons.access_time_rounded,
-                                            color: Colors.grey, size: 18),
+                                          _formatTime(
+                                              endTime.hour, endTime.minute),
+                                        ),
+                                        Icon(Icons.access_time_rounded,
+                                            color: colorScheme.onSurface,
+                                            size: 18),
                                       ],
                                     ),
                                   ),
@@ -318,8 +321,9 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                       const SizedBox(height: 20),
 
                       // --- ROOM ENTRY ---
-                      const Text("Room / Location (Optional)",
-                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      Text("Room / Location (Optional)",
+                          style: TextStyle(
+                              color: colorScheme.onSurface, fontSize: 13)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: roomController,
@@ -327,9 +331,10 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                             const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: "e.g., Lab 3, Room 402",
-                          hintStyle: TextStyle(color: Colors.grey.shade600),
+                          hintStyle: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.5)),
                           filled: true,
-                          fillColor: const Color(0xFF16171D),
+                          fillColor: colorScheme.surfaceContainerHigh,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 14),
                           enabledBorder: OutlineInputBorder(
@@ -486,7 +491,8 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final int currentDayIndex = _tabController.index + 1; // 1 = Mon, 7 = Sun
 
     final List<TimetableEntryDraft> daySlots = widget.setupDraft.timetableSlots
@@ -499,26 +505,22 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0C10),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111218),
         elevation: 0,
         title: Text(
           widget.isFromOnboarding ? "Set Up Schedule" : "Edit Timetable",
-          style:
-              const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon:
-              const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: widget.onBack,
         ),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          indicatorColor: const Color(0xFF6366F1),
-          labelColor: const Color(0xFF6366F1),
-          unselectedLabelColor: Colors.grey,
+          indicatorColor: colorScheme.primary,
+          labelColor: colorScheme.primary,
+          unselectedLabelColor: colorScheme.onSurface.withOpacity(0.5),
           tabs: _days.map((day) => Tab(text: day)).toList(),
         ),
       ),
@@ -528,8 +530,8 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: daySlots.isEmpty
-                  ? Center(child: _buildEmptyStateCard(currentDayIndex))
-                  : _buildSlotsListView(daySlots, currentDayIndex),
+                  ? Center(child: _buildEmptyStateCard(theme, currentDayIndex))
+                  : _buildSlotsListView(theme, daySlots, currentDayIndex),
             ),
           ),
           Padding(
@@ -544,14 +546,17 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
 
   // --- PRIVATE GRAPHIC FACTORIES ---
 
-  Widget _buildEmptyStateCard(int dayIndex) {
+  Widget _buildEmptyStateCard(ThemeData theme, int dayIndex) {
+    final colorScheme = theme.colorScheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04), width: 1),
-        color: const Color(0xFF111218),
+        border: Border.all(
+            color: colorScheme.onSurface.withOpacity(0.04), width: 1),
+        color: colorScheme.surfaceContainerHigh,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -559,9 +564,10 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF16171D),
+              color: colorScheme.surfaceContainerLowest,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.04)),
+              border:
+                  Border.all(color: colorScheme.onSurface.withOpacity(0.04)),
             ),
             child: Icon(Icons.calendar_today_rounded,
                 size: 32, color: Colors.grey.shade600),
@@ -569,18 +575,17 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
           const SizedBox(height: 20),
           const Text(
             "No classes scheduled",
-            style: TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Text(
             "Keep it free or draft a standard session window loop.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => _openAddOrEditBottomSheet(dayIndex),
+            onPressed: () => _openAddOrEditBottomSheet(theme, dayIndex),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
               foregroundColor: Colors.white,
@@ -598,32 +603,34 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
     );
   }
 
-  Widget _buildSlotsListView(List<TimetableEntryDraft> slots, int dayIndex) {
+  Widget _buildSlotsListView(
+      ThemeData theme, List<TimetableEntryDraft> slots, int dayIndex) {
+    final colorScheme = theme.colorScheme;
     return ListView.separated(
       itemCount: slots.length + 1,
       separatorBuilder: (_, __) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
         if (index == slots.length) {
           return InkWell(
-            onTap: () => _openAddOrEditBottomSheet(dayIndex),
+            onTap: () => _openAddOrEditBottomSheet(theme, dayIndex),
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 18),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2E303E), width: 1.5),
-                color: const Color(0xFF0F1015),
+                border: Border.all(color: colorScheme.onSurface, width: 1.5),
+                color: colorScheme.surfaceContainerHigh,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_circle_outline_rounded,
-                      color: Colors.grey.shade400, size: 18),
+                      color: colorScheme.onSurface.withOpacity(0.7), size: 18),
                   const SizedBox(width: 8),
                   Text(
                     "Add Another Slot",
                     style: TextStyle(
-                        color: Colors.grey.shade400,
+                        color: colorScheme.onSurface.withOpacity(0.5),
                         fontWeight: FontWeight.bold,
                         fontSize: 14),
                   ),
@@ -646,12 +653,13 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
         final Color blockColor = Color(associatedSubject.colorValue);
 
         return GestureDetector(
-          onTap: () => _openAddOrEditBottomSheet(dayIndex, existingSlot: slot),
+          onTap: () =>
+              _openAddOrEditBottomSheet(theme, dayIndex, existingSlot: slot),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF16171D),
+              color: colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF23242B), width: 1),
+              border: Border.all(color: colorScheme.onSurface, width: 1),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
@@ -670,15 +678,14 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                           Text(
                             _formatTime(slot.startHour, slot.startMinute),
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14),
+                                fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             _formatTime(slot.endHour, slot.endMinute),
                             style: TextStyle(
-                                color: Colors.grey.shade500, fontSize: 12),
+                                color: colorScheme.onSurface.withOpacity(0.5),
+                                fontSize: 12),
                           ),
                         ],
                       ),
@@ -702,9 +709,7 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15),
+                                  fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                             if (slot.roomNo.isNotEmpty) ...[
                               const SizedBox(height: 4),
@@ -754,16 +759,16 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
             child: OutlinedButton.icon(
               onPressed: widget.onBack,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF2E303E)),
+                side: BorderSide(color: colorScheme.onSurface),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              icon: const Icon(Icons.keyboard_return,
-                  color: Color(0xFF9CA3AF), size: 18),
-              label: const Text("Back",
+              icon: Icon(Icons.keyboard_return,
+                  color: colorScheme.onSurface, size: 18),
+              label: Text("Back",
                   style: TextStyle(
-                      color: Color(0xFF9CA3AF),
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 15)),
             ),
@@ -773,17 +778,17 @@ class _SetupTimetableScreenState extends State<SetupTimetableScreen>
             child: ElevatedButton.icon(
               onPressed: _handleSavePipeline,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1C1D24),
-                side: const BorderSide(color: Color(0xFF2E303E)),
+                backgroundColor: colorScheme.primary,
+                side: BorderSide(color: colorScheme.primary),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              icon: const Icon(Icons.info_outline,
-                  color: Color(0xFF818CF8), size: 18),
+              icon:
+                  const Icon(Icons.info_outline, color: Colors.white, size: 18),
               label: const Text("Semester Info",
                   style: TextStyle(
-                      color: Color(0xFF818CF8),
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 15)),
             ),
