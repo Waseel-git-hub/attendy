@@ -98,12 +98,11 @@ class _OnboardingSemesterSetupScreenState
                   labelText: 'Semester Name',
                   labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                   hintText: 'e.g., Semester 1, Fall 2026',
-                  hintStyle:
-                      TextStyle(color: colorScheme.onSurface.withOpacity(0.4)),
+                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                   prefixIcon: Icon(Icons.school_outlined,
                       color: colorScheme.onSurfaceVariant),
                   filled: true,
-                  fillColor: colorScheme.surfaceContainerHigh,
+                  fillColor: colorScheme.surfaceContainerLowest,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -111,7 +110,7 @@ class _OnboardingSemesterSetupScreenState
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
-                        BorderSide(color: colorScheme.primary, width: 2),
+                        BorderSide(color: colorScheme.primary, width: 1),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -191,9 +190,10 @@ class _OnboardingSemesterSetupScreenState
                         child: OutlinedButton(
                           onPressed: _pickDateRange,
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: colorScheme.outline),
+                            backgroundColor: colorScheme.primaryContainer,
+                            side: BorderSide(color: colorScheme.outlineVariant),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(16)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: Text(
@@ -201,7 +201,7 @@ class _OnboardingSemesterSetupScreenState
                                 ? 'Modify Date Limits'
                                 : 'Select Academic Term Calendar',
                             style: TextStyle(
-                                color: colorScheme.primary,
+                                color: colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.bold),
                           ),
                         ),

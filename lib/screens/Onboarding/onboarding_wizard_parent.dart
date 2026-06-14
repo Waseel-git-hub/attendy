@@ -208,6 +208,7 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   backgroundColor: colorScheme.surfaceContainerLow,
+                  foregroundColor: colorScheme.onSurface,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: BorderSide(color: theme.colorScheme.outlineVariant),
                   shape: RoundedRectangleBorder(

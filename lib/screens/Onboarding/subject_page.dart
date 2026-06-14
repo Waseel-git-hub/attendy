@@ -339,8 +339,8 @@ class _OnboardingSubjectsSetupScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         elevation: 1,
-        backgroundColor: colorScheme.surfaceContainerHigh,
-        foregroundColor: colorScheme.primary,
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
         icon: const Icon(Icons.add_rounded),
         label: const Text(
           'Add Subject',
