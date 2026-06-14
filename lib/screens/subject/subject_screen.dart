@@ -21,20 +21,28 @@ class SubjectScreen extends StatefulWidget {
 class _SubjectScreenState extends State<SubjectScreen> {
   final Set<dynamic> _selectedIds = {};
 
-  Future<bool> deleteConfirmationDialog(BuildContext context) async {
+  //TODO : Edit Confirmation
+
+  Future<bool> deleteConfirmationDialog(
+      BuildContext context, ThemeData theme) async {
+    final colorScheme = theme.colorScheme;
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false, // User must tap a button to dismiss
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Delete Subject?'),
-              content: const Text(
-                'This will delete all associated records',
+              content: Text(
+                'This will delete all associated records and cannot be undone',
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 16,
+                ),
               ),
               actions: <Widget>[
                 TextButton(
-                  child: const Text('Cancel',
-                      style: TextStyle(color: Colors.grey)),
+                  child: Text('Cancel',
+                      style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   onPressed: () {
                     Navigator.of(context).pop(false); // Returns false
                   },
@@ -72,11 +80,26 @@ class _SubjectScreenState extends State<SubjectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedIds.isEmpty
-            ? "Subjects"
-            : "${_selectedIds.length} Selected"),
+        leading: (_selectedIds.isEmpty)
+            ? null
+            : IconButton(
+                onPressed: () {
+                  _selectedIds.clear();
+                  setState(() {});
+                },
+                icon: Icon(Icons.arrow_back_ios)),
+        elevation: _selectedIds.isEmpty ? 0 : 1,
+        title: _selectedIds.isEmpty
+            ? Text(
+                "Subjects",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              )
+            : Text("${_selectedIds.length} Selected"),
         actions: [
           if (_selectedIds.length == 1)
             IconButton(
@@ -88,13 +111,16 @@ class _SubjectScreenState extends State<SubjectScreen> {
                         builder: (context) => AddSubjectScreen(
                             subject: DatabaseService.getSubjectById(
                                 _selectedIds.first))));
+                setState(() {
+                  _selectedIds.clear();
+                });
               },
             ),
           if (_selectedIds.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
-                if (await deleteConfirmationDialog(context)) {
+                if (await deleteConfirmationDialog(context, theme)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Row(
@@ -120,6 +146,57 @@ class _SubjectScreenState extends State<SubjectScreen> {
         valueListenable: DatabaseService.subjectBox.listenable(),
         builder: (context, Box<Subject> box, _) {
           final subjects = box.values.toList();
+
+          if (subjects.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.menu_book_rounded,
+                    size: 72,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No Subjects Added",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Add your first subject to continue",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddSubjectScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.add,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      "Add Subject",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
 
           return GridView.builder(
             padding: const EdgeInsets.all(16),
@@ -153,17 +230,21 @@ class _SubjectScreenState extends State<SubjectScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        onPressed: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const AddSubjectScreen()));
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          DatabaseService.subjectBox.isEmpty // TODO: Need work semester bug
+              ? null
+              : FloatingActionButton.extended(
+                  label: Text('Add Subject'),
+                  icon: const Icon(Icons.add),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AddSubjectScreen()));
+                  },
+                ),
     );
   }
 }

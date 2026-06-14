@@ -27,6 +27,9 @@ class SubjectBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    //TODO
+    final bool roomAvailable = room != '';
+    ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Positioned(
       top: top,
       left: left,
@@ -35,23 +38,54 @@ class SubjectBlock extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         onLongPress: onHold,
+        borderRadius: BorderRadius.circular(4),
         child: Container(
           margin: const EdgeInsets.all(2),
-          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color,
             borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: colorScheme.outlineVariant,
+            ),
           ),
+          clipBehavior: Clip.hardEdge,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  color: color,
+                  alignment: Alignment.center,
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white)),
-              Text(room,
-                  style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              if (roomAvailable) ...[
+                Container(
+                  width: width,
+                  height: height / 3.5,
+                  alignment: Alignment.center,
+                  color: colorScheme.primaryContainer,
+                  child: Text(
+                    room,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

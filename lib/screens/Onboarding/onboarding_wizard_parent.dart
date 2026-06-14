@@ -188,9 +188,10 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
+                  foregroundColor: theme.colorScheme.onSurface,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 icon: const Icon(Icons.arrow_forward_rounded),
                 label: Text(
@@ -206,8 +207,9 @@ class _OnboardingWizardParentState extends State<OnboardingWizardParent> {
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
+                  backgroundColor: colorScheme.surfaceContainerLow,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: theme.colorScheme.outline),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),

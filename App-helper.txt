@@ -1,0 +1,179 @@
+/*
+═══════════════════════════════════════════════
+                ATTENDY UI SYSTEM
+═══════════════════════════════════════════════
+
+ACCENT
+-----------------------------------------------
+Primary  : #6366F1
+Unselected Primary : primaryContainer
+Success  : #22C55E
+Warning  : #F59E0B
+Danger   : #EF4444
+Tertiary : Green (Semantic Use Only)
+
+═══════════════════════════════════════════════
+                COLOR ROLES
+═══════════════════════════════════════════════
+
+Background
+-----------------------------------------------
+colorScheme.surface
+
+Examples:
+- Scaffold
+- Screen Background
+- App Pages
+
+
+
+Card
+-----------------------------------------------
+colorScheme.surfaceContainerLow
+
+Examples:
+- Subject Card
+- Lecture Card
+- Semester Card
+- Timetable Slot
+
+
+
+Important Card
+-----------------------------------------------
+colorScheme.surfaceContainerHigh
+
+Examples:
+- Summary Card
+- Current Lecture
+- Attendance Overview
+- Empty State
+
+
+
+Input
+-----------------------------------------------
+colorScheme.surfaceContainerLowest
+
+Examples:
+- TextField
+- Search Bar
+- Dropdown
+
+
+
+Primary Text
+-----------------------------------------------
+colorScheme.onSurface
+
+Examples:
+- Titles
+- Labels
+- Main Content
+
+
+
+Secondary Text
+-----------------------------------------------
+colorScheme.onSurfaceVariant
+
+Examples:
+- Metadata
+- Description
+- Subtitle
+- Hint
+
+
+
+Border
+-----------------------------------------------
+colorScheme.outlineVariant
+
+Examples:
+- Divider
+- Card Border
+- Input Border
+
+
+
+Selected State
+-----------------------------------------------
+colorScheme.primaryContainer
+
+Examples:
+- Selected Filter
+- Selected Chip
+- Selected Day
+- Selected Timetable Slot
+
+
+
+
+CTA / FAB
+-----------------------------------------------
+colorScheme.primary
+
+Examples:
+- Continue
+- Save
+- Add
+- FAB
+
+═══════════════════════════════════════════════
+                TYPOGRAPHY
+═══════════════════════════════════════════════
+
+Title
+-----------------------------------------------
+Font Size : 32
+Weight    : Bold
+
+Page Title
+-----------------------------------------------
+Font Size : 22
+Weight    : Bold
+
+Section
+-----------------------------------------------
+Font Size : 20
+Weight    : SemiBold
+
+Card Title
+-----------------------------------------------
+Font Size : 16
+Weight    : SemiBold
+
+Body
+-----------------------------------------------
+Font Size : 14
+Weight    : Regular
+
+Caption
+-----------------------------------------------
+Font Size : 12
+Weight    : Regular
+
+═══════════════════════════════════════════════
+                BORDER RADIUS
+═══════════════════════════════════════════════
+
+Cards     : 20
+Buttons   : 16
+Inputs    : 16
+Chips     : 12
+
+═══════════════════════════════════════════════
+                  SPACING
+═══════════════════════════════════════════════
+
+Allowed Values:
+
+4
+8
+16
+24
+32
+
+
+═══════════════════════════════════════════════
+*/

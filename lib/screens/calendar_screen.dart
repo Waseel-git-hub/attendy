@@ -41,133 +41,214 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
 
   void _showFilterBottomSheet(ThemeData theme) {
     final colorScheme = theme.colorScheme;
+
+    // 1. Shield host state by capturing initial filters into local temp variables
+    String tempStatus = _filterStatus;
+    dynamic tempSubjectId = _filterSubjectId;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.05),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            return Padding(
+              // Handles system navigation bars dynamically via MediaQuery padding bottom
+              padding: EdgeInsets.fromLTRB(
+                  24, 16, 24, MediaQuery.of(context).padding.bottom + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Top drag handlebar line indicator
                   Center(
                     child: Container(
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withOpacity(0.2),
+                        color: colorScheme.onSurfaceVariant.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
+                  const SizedBox(height: 20),
+                  Text(
                     "Filter Lectures",
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // 1. STATUS SELECTION CHIPS
-                  _buildSectionTitle("Status"),
-                  const SizedBox(height: 10),
+                  // SECTION 1: STATUS CHIPS BLOCK
+                  Text(
+                    "Status",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                    spacing: 4,
+                    runSpacing: 4,
                     children:
                         ["All", "Present", "Absent", "Cancelled"].map((status) {
-                      final isSelected = _filterStatus == status;
-                      return _buildFilterChip(
-                        text: status,
-                        isSelected: isSelected,
-                        onTap: () =>
-                            setModalState(() => _filterStatus = status),
-                        colorScheme: colorScheme,
+                      final isSelected = tempStatus == status;
+                      return ChoiceChip(
+                        label: Text(status),
+                        selected: isSelected,
+                        onSelected: (_) =>
+                            setModalState(() => tempStatus = status),
+                        selectedColor: colorScheme.primaryContainer,
+                        backgroundColor: colorScheme.surfaceContainerLow,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? colorScheme.onPrimaryContainer
+                              : colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide.none,
+                        ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 24),
 
-                  // 2. SUBJECTS FILTER CHIPS BLOCK
-                  _buildSectionTitle("Subjects"),
-                  const SizedBox(height: 10),
+                  // SECTION 2: SUBJECTS FILTER CHIPS BLOCK
+                  Text(
+                    "Subjects",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   ValueListenableBuilder(
                     valueListenable: DatabaseService.subjectBox.listenable(),
                     builder: (context, Box<Subject> box, _) {
                       return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          // Explicit "All Subjects" starting anchor
-                          _buildFilterChip(
-                            text: "All Subjects",
-                            isSelected: _filterSubjectId == null,
-                            onTap: () =>
-                                setModalState(() => _filterSubjectId = null),
-                            colorScheme: colorScheme,
+                          // Explicit "All Subjects" starting anchor chip
+                          ChoiceChip(
+                            label: const Text("All Subjects"),
+                            selected: tempSubjectId == null,
+                            onSelected: (_) =>
+                                setModalState(() => tempSubjectId = null),
+                            selectedColor: colorScheme.primaryContainer,
+                            backgroundColor: colorScheme.surfaceContainerLow,
+                            labelStyle: TextStyle(
+                              color: tempSubjectId == null
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide.none,
+                            ),
                           ),
                           ...box.values.map((sub) {
-                            final isSelected = _filterSubjectId == sub.key;
-                            return _buildFilterChip(
-                              text: sub.name,
-                              isSelected: isSelected,
-                              onTap: () => setModalState(
-                                  () => _filterSubjectId = sub.key),
-                              colorScheme: colorScheme,
-                              accentColor: Color(sub.colorValue),
+                            final isSelected = tempSubjectId == sub.key;
+
+                            return ChoiceChip(
+                              label: Text(sub.name),
+                              selected: isSelected,
+                              onSelected: (_) =>
+                                  setModalState(() => tempSubjectId = sub.key),
+                              // Micro-tint background styling matched to subject colors
+                              selectedColor: colorScheme.primaryContainer,
+                              backgroundColor: colorScheme.surfaceContainerLow,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide.none,
+                              ),
                             );
                           }),
                         ],
                       );
                     },
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 32),
 
-                  // 3. ACTION TRIGGERS (RESET / APPLY)
+                  // SECTION 3: ACTION BUTTON ROW (RESET / APPLY)
                   Row(
                     children: [
-                      TextButton(
-                        onPressed: () {
-                          setModalState(() {
-                            _filterSubjectId = null;
-                            _filterStatus = "All";
-                          });
-                        },
-                        child: Text(
-                          "Reset",
-                          style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.6),
-                              fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            backgroundColor: colorScheme.surfaceContainerHigh,
+                            foregroundColor: colorScheme.onSurfaceVariant,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            // Clean live reset visual cue within the interactive layout sheet
+                            setModalState(() {
+                              tempStatus = "All";
+                              tempSubjectId = null;
+                            });
+                          },
+                          label: Text(
+                            "Reset View",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ),
-                      const Spacer(),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(
-                              () {}); // Repaints host calendar with updated rulesets
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 44, vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            // Commit local selections to host state engine only on explicit tap
+                            setState(() {
+                              _filterStatus = tempStatus;
+                              _filterSubjectId = tempSubjectId;
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            "Apply Filters",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        child: const Text("Apply",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -177,60 +258,6 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-          fontSize: 19, fontWeight: FontWeight.w600, letterSpacing: 0.3),
-    );
-  }
-
-  Widget _buildFilterChip({
-    required String text,
-    required bool isSelected,
-    required VoidCallback onTap,
-    required ColorScheme colorScheme,
-    Color? accentColor,
-  }) {
-    final activeThemeColor = accentColor ?? colorScheme.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? activeThemeColor
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : colorScheme.onSurface.withOpacity(0.2),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSelected) ...[
-              const Icon(Icons.check_rounded, color: Colors.white, size: 14),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -247,9 +274,7 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.tune_rounded,
-                color: colorScheme
-                    .primary), // System modern filter configuration icon
+            icon: Icon(Icons.tune_rounded, color: colorScheme.primary),
             onPressed: () => _showFilterBottomSheet(theme),
           ),
           const SizedBox(width: 12),
@@ -279,27 +304,28 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
             // --- Calendar UI Overrides ---
             calendarStyle: CalendarStyle(
               outsideDaysVisible: false,
-              defaultTextStyle: const TextStyle(fontWeight: FontWeight.w500),
+              defaultTextStyle: const TextStyle(fontWeight: FontWeight.w400),
               weekendTextStyle: TextStyle(
                   color: colorScheme.error.withOpacity(0.8),
-                  fontWeight: FontWeight.w500),
+                  fontWeight: FontWeight.w400),
               todayDecoration: BoxDecoration(
-                color: colorScheme.onSurface.withOpacity(0.1),
+                color: colorScheme.surfaceContainerLow,
                 shape: BoxShape.circle,
               ),
-              todayTextStyle: const TextStyle(fontWeight: FontWeight.bold),
+              todayTextStyle: const TextStyle(fontWeight: FontWeight.w500),
               selectedDecoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.7),
+                color: colorScheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
-              selectedTextStyle: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
+              selectedTextStyle: TextStyle(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold),
             ),
-            headerStyle: const HeaderStyle(
+            headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
               titleTextStyle:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
               leftChevronIcon: Icon(Icons.chevron_left_rounded),
               rightChevronIcon: Icon(Icons.chevron_right_rounded),
             ),
@@ -359,7 +385,10 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
               ? "No lectures this day"
               : "No matches for active filter settings",
           style: TextStyle(
-              color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
+            color: colorScheme.onSurfaceVariant,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       );
     }
@@ -382,15 +411,17 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHigh,
+            color: colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
+            border: BoxBorder.all(color: colorScheme.outlineVariant),
           ),
           child: ListTile(
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             leading: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
+                border: BoxBorder.all(color: colorScheme.outlineVariant),
                 color: subColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
@@ -398,21 +429,22 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
                 IconData(subject?.iconCodePoint ?? Icons.book_rounded.codePoint,
                     fontFamily: 'MaterialIcons'),
                 color: subColor,
-                size: 20,
+                size: 22,
               ),
             ),
             title: Text(
               subject?.name ?? "Unknown Subject",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 lec.status,
                 style: TextStyle(
-                    color: statusColor.withOpacity(0.8),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13),
+                  color: statusColor.withOpacity(0.8),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ),
             trailing: Icon(Icons.circle, color: statusColor, size: 10),

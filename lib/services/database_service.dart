@@ -346,7 +346,7 @@ class DatabaseService {
       final String uid = "${stats.subjectID}_${stats.monthKey}";
       await attendanceBox.put(uid, stats);
     }
-    lecture.status = 'NONE';
+    lecture.status = 'Not Marked';
     await lecture.save();
   }
 

@@ -8,10 +8,8 @@ import '../../services/database_service.dart';
 
 class AddSubjectScreen extends StatefulWidget {
   final Subject? subject;
-  final bool
-      isOnboardingFlow; // Passed down explicitly from your setup coordinator
-  final dynamic
-      currentSemesterID; // Required when adding subjects post-onboarding directly to a semester
+  final bool isOnboardingFlow;
+  final dynamic currentSemesterID;
 
   const AddSubjectScreen({
     super.key,
@@ -170,7 +168,7 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
         scrolledUnderElevation: 0,
         title: Text(
           widget.subject != null ? "Edit Subject" : "Add Subject",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: true,
       ),
@@ -187,11 +185,11 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 240),
-                    width: 130,
-                    height: 130,
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: activeAccentColor.withOpacity(0.12),
+                      color: activeAccentColor.withOpacity(0.1),
                       border: Border.all(
                         color: activeAccentColor.withOpacity(0.3),
                         width: 2,
@@ -200,7 +198,7 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                     child: Center(
                       child: Icon(
                         IconData(_selectedIcon, fontFamily: 'MaterialIcons'),
-                        size: 56,
+                        size: 60,
                         color: activeAccentColor,
                       ),
                     ),
@@ -208,28 +206,27 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
             // 2. FORM INPUT FIELD FOR SUBJECT NAME
             Text(
               "Subject Name",
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface.withOpacity(0.55),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
               style: TextStyle(
                   color: colorScheme.onSurface, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
-                hintText: "Enter subject name...",
+                hintText: "Enter...",
                 filled: true,
-                fillColor:
-                    colorScheme.surfaceContainerHighest.withOpacity(0.25),
+                fillColor: colorScheme.surfaceContainerLow,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 border: OutlineInputBorder(
@@ -242,18 +239,18 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                   ? "Please enter a subject name"
                   : null,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
             // 3. ICON SELECTION GRID MATRIX
             Text(
               "Choose Icon",
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface.withOpacity(0.55),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -276,21 +273,20 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? activeAccentColor
-                          : colorScheme.surfaceContainerHighest
-                              .withOpacity(0.4),
+                          : colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isSelected
                             ? Colors.transparent
-                            : colorScheme.onSurface.withOpacity(0.06),
+                            : colorScheme.outlineVariant,
                       ),
                     ),
                     child: Icon(
                       iconData,
                       color: isSelected
                           ? Colors.white
-                          : colorScheme.onSurface.withOpacity(0.65),
-                      size: 22,
+                          : colorScheme.onSurfaceVariant,
+                      size: 28,
                     ),
                   ),
                 );
@@ -302,12 +298,12 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
             Text(
               "Choose Color",
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface.withOpacity(0.55),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 14,
               runSpacing: 14,
@@ -355,9 +351,9 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                 Text(
                   "Minimum Attendance",
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface.withOpacity(0.55),
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 Text(
@@ -365,22 +361,21 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: activeAccentColor),
+                      color: colorScheme.onSurface),
                 ),
               ],
             ),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                activeTrackColor: activeAccentColor,
-                inactiveTrackColor:
-                    colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                thumbColor: activeAccentColor,
-                overlayColor: activeAccentColor.withOpacity(0.12),
+                activeTrackColor: colorScheme.primary,
+                inactiveTrackColor: colorScheme.surfaceContainerLow,
+                thumbColor: colorScheme.primary,
+                overlayColor: colorScheme.primary.withOpacity(0.12),
                 trackHeight: 4,
                 tickMarkShape:
                     const RoundSliderTickMarkShape(tickMarkRadius: 2),
                 activeTickMarkColor: Colors.transparent,
-                inactiveTickMarkColor: colorScheme.onSurface.withOpacity(0.15),
+                inactiveTickMarkColor: colorScheme.primaryContainer,
               ),
               child: Slider(
                 value: _minAttendance.toDouble(),
@@ -402,15 +397,15 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                     .map((label) => Text(
                           label,
                           style: TextStyle(
-                              fontSize: 11,
-                              color: colorScheme.onSurface.withOpacity(0.35),
-                              fontWeight: FontWeight.w500),
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600),
                         ))
                     .toList(),
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 36),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -422,9 +417,10 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: theme.colorScheme.errorContainer,
                         foregroundColor: theme.colorScheme.onErrorContainer,
-                        elevation: 0,
+                        elevation: 1,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       icon: const Icon(Icons.delete_outline_rounded, size: 20),
                       label: const Text(
@@ -444,9 +440,9 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: colorScheme.primary,
                       foregroundColor: Colors.white,
-                      elevation: 0,
+                      elevation: 1,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                     icon: Icon(
                         widget.subject != null
@@ -456,7 +452,9 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
                     label: Text(
                       widget.subject != null ? "Update" : "Create",
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

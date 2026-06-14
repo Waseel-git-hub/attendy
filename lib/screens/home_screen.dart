@@ -32,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAddExtraLectureSheet(BuildContext context) async {
-    // 1. Open the modal sheet and wait for it to close
     final entrySaved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -40,12 +39,11 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AddExtraLectureSheet(
-        initialDate: _selectedDate, // Passes your screen's active calendar date
-        // subjectKey is omitted here, so the dropdown starts unselected
+        initialDate: _selectedDate,
       ),
     );
 
-    // 2. If the user saved a lecture (returned true), refresh the screen layout
+    // Saved => Refresh
     if (entrySaved == true && mounted) {
       setState(() {});
     }
@@ -66,6 +64,145 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildHeader(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 80,
+      scrolledUnderElevation: 2,
+      titleSpacing: 20,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.symmetric(horizontal: 24),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              "This Week",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                letterSpacing: -0.2,
+              ),
+            ),
+            PopupMenuButton<String>(
+              tooltip: "Mark all for today",
+              // Keeps the dropdown surface uniform with your sheet/card structures
+              color: colorScheme.surfaceContainerLowest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: colorScheme.outline, width: 1),
+              ),
+              icon: Icon(
+                Icons.done_all_rounded,
+                color: colorScheme.primary,
+                size: 24,
+              ),
+              onSelected: (String status) async {
+                // 1. Trigger the bulk update database execution with the selected choice
+                await DatabaseService.markAllLecturesForDate(
+                  date: _selectedDate,
+                  targetStatus: status,
+                );
+
+                // 2. Display a confirmation notice
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      // Guaranteed readable contrast regardless of Light or Dark mode
+                      backgroundColor: colorScheme.inverseSurface,
+                      content: Text(
+                        "All lectures set to $status",
+                        style: TextStyle(
+                          color: colorScheme.onInverseSurface,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                final isDark = theme.brightness == Brightness.dark;
+
+                return <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'Present',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment
+                          .start, // Fixed alignment layout alignment loop
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          // Adapt color intensity based on theme state to preserve contrast rules
+                          color: isDark
+                              ? Colors.greenAccent.shade400
+                              : Colors.green.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Present',
+                          style: TextStyle(
+                              fontSize: 14, color: colorScheme.onSurface),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'Absent',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.cancel_rounded,
+                          color: colorScheme.error,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Absent',
+                          style: TextStyle(
+                              fontSize: 14, color: colorScheme.onSurface),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'Cancelled',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.hotel_class_rounded,
+                          color: isDark
+                              ? Colors.amber.shade400
+                              : Colors.amber.shade800,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Cancelled',
+                          style: TextStyle(
+                              fontSize: 14, color: colorScheme.onSurface),
+                        ),
+                      ],
+                    ),
+                  ),
+                ];
+              },
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDateSelector(ThemeData theme) {
     final colorScheme = theme.colorScheme;
 
@@ -74,8 +211,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return SliverToBoxAdapter(
       child: Container(
-        height: 85,
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        height: 60,
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: PageView.builder(
           controller: PageController(initialPage: 500),
           onPageChanged: (int index) {
@@ -104,16 +241,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       width: itemWidth > 0 ? itemWidth : 48.103896103896105,
                       decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: colorScheme.onSurface.withOpacity(0.04),
-                            blurRadius: 1,
-                          ),
-                        ],
+                        border: Border.all(color: colorScheme.outlineVariant),
                         color: isSelected
                             ? colorScheme.primary
-                            : colorScheme.primary.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(25),
+                            : colorScheme.primaryContainer.withOpacity(.5),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -123,18 +255,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               color: (isSelected)
                                   ? Colors.white
-                                  : colorScheme.onSurface.withOpacity(0.55),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                                  : colorScheme.onSurfaceVariant,
+                              fontSize: 12,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             "${date.day}",
                             style: TextStyle(
                               color: isSelected
                                   ? Colors.white
-                                  : colorScheme.onSurface,
+                                  : colorScheme.onSurfaceVariant,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -164,10 +295,15 @@ class _HomeScreenState extends State<HomeScreen> {
           return SliverToBoxAdapter(
             child: Center(
               child: Padding(
-                padding: EdgeInsets.only(top: 100),
-                child: Text("No classes scheduled",
-                    style: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.5))),
+                padding: EdgeInsets.only(top: 200),
+                child: Text(
+                  "No classes scheduled",
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           );
@@ -188,16 +324,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         leftWidth: 40,
                         showTopLine: true,
                         showBottomLine: index != lectures.length - 1,
-                        lineColor: colorScheme.onSurface.withOpacity(0.15),
+                        lineColor: colorScheme.onInverseSurface,
                         leftWidget: _buildTimeColumn(lecture, theme),
                         indicatorNode: Container(
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: colorScheme.primary,
+                            color: colorScheme.surfaceContainerLowest,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: colorScheme.primary.withOpacity(0.3),
+                              color: colorScheme.primary,
                               width: 4,
                             ),
                           ),
@@ -236,138 +372,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTimeColumn(Lecture lecture, ThemeData theme) {
-    final colorScheme = theme.colorScheme;
-    String startTime =
-        '${lecture.startHour}:${lecture.startMinute.toString().padLeft(2, '0')}';
-    String endTime =
-        '${lecture.endHour}:${lecture.endMinute.toString().padLeft(2, '0')}';
-    return SizedBox(
-      width: 50,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 25),
-        child: Column(
-          children: [
-            const SizedBox(height: 50),
-            Text(startTime,
-                style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontSize: 15,
-                )),
-            Text(
-              endTime,
-              style: TextStyle(
-                  color: colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(ThemeData theme) {
-    final colorScheme = theme.colorScheme;
-    return SliverAppBar(
-      pinned: true,
-      expandedHeight: 80,
-      scrolledUnderElevation: 2,
-      titleSpacing: 20,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              "This Week",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-                letterSpacing: -0.2,
-              ),
-            ),
-
-            // Button rests naturally on the right-center vertical tracking line
-            PopupMenuButton<String>(
-              tooltip: "Mark all for today",
-              onSelected: (String status) async {
-                // 1. Trigger the bulk update database execution with the selected choice
-                await DatabaseService.markAllLecturesForDate(
-                  date: _selectedDate,
-                  targetStatus: status,
-                );
-
-                // 2. Display a confirmation notice
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      content: Text(
-                        "All lectures set to $status",
-                        style: TextStyle(color: colorScheme.onSurface),
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                }
-              },
-              // The visual button icon trigger matching your polished layout axis
-              icon: Icon(
-                Icons.done_all_rounded,
-                color: colorScheme.primary,
-                size: 24,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                PopupMenuItem<String>(
-                  value: 'Present',
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle_rounded,
-                          color: Colors.greenAccent.shade400, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Mark All Present',
-                          style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'Absent',
-                  child: Row(
-                    children: [
-                      Icon(Icons.cancel_rounded,
-                          color: colorScheme.error, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Mark All Absent',
-                          style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'Cancelled',
-                  child: Row(
-                    children: [
-                      Icon(Icons.hotel_class_rounded,
-                          color: Colors.amber.shade400, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Holiday / Cancelled',
-                          style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        centerTitle: false,
-      ),
-    );
-  }
-
   Widget _addExtraButton(ThemeData theme) {
     final colorScheme = theme.colorScheme;
     return SliverPadding(
@@ -380,12 +384,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Container(
             height: 56,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.05),
+              color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: colorScheme.primary.withOpacity(0.3),
-                width: 1.5,
-                style: BorderStyle.solid, // Change to dashed if using a package
+                color: colorScheme.outlineVariant,
               ),
             ),
             child: Row(
@@ -393,21 +395,50 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(
                   Icons.add_circle_outline_rounded,
-                  color: colorScheme.primary,
+                  color: colorScheme.onSurface,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   "Add Extra Lecture",
                   style: TextStyle(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    letterSpacing: 0.3,
+                    color: colorScheme.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeColumn(Lecture lecture, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    String startTime =
+        '${lecture.startHour}:${lecture.startMinute.toString().padLeft(2, '0')}';
+    String endTime =
+        '${lecture.endHour}:${lecture.endMinute.toString().padLeft(2, '0')}';
+    return SizedBox(
+      width: 50,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          children: [
+            const SizedBox(height: 42),
+            Text(startTime,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                )),
+            Text(
+              endTime,
+              style:
+                  TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 10),
+            )
+          ],
         ),
       ),
     );

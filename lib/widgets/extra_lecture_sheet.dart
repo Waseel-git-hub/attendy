@@ -1,3 +1,4 @@
+import 'package:Attendy/screens/subject/add_subject_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -24,6 +25,7 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
   bool _customEndTime = false;
   dynamic _selectedSubjectId;
 
+  final bool subjectAvailable = DatabaseService.subjectBox.isNotEmpty;
   // Declared safely inside persistent State object memory space
   final TextEditingController _roomController = TextEditingController();
 
@@ -40,7 +42,6 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
 
   @override
   void dispose() {
-    // Explicit clean up to eliminate underlying stream memory leaks
     _roomController.dispose();
     super.dispose();
   }
@@ -52,7 +53,7 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
 
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 30,
         top: 20,
         left: 20,
         right: 20,
@@ -60,30 +61,24 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              "Add Extra Lecture",
-              style: TextStyle(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 28,
-              ),
-            ),
-            const SizedBox(height: 15),
-
             // 1. SUBJECT DROPDOWN
             ValueListenableBuilder(
               valueListenable: DatabaseService.subjectBox.listenable(),
               builder: (context, Box<Subject> box, _) {
+                //TODO
                 if (box.values.isEmpty) {
                   return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Text(
-                      "No subjects found! Add them in settings first.",
+                      //TODO
+                      "No Subjects found!\nAdd Subject First",
+                      textAlign: TextAlign.center,
+
                       style: TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 14,
+                        color: Color(0xFFEF4444),
+                        fontSize: 24,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -100,7 +95,7 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                             IconData(subject.iconCodePoint,
                                 fontFamily: 'MaterialIcons'),
                             color: Color(subject.colorValue),
-                            size: 20,
+                            size: 24,
                           ),
                           const SizedBox(width: 10),
                           Text(
@@ -114,16 +109,15 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                   },
                   decoration: InputDecoration(
                     labelText: "Select Subject",
-                    labelStyle: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.6)),
+                    labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                     filled: true,
-                    fillColor: colorScheme.surfaceContainerHighest,
+                    fillColor: colorScheme.surfaceContainerLowest,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  dropdownColor: colorScheme.surfaceContainerHigh,
+                  dropdownColor: colorScheme.surfaceContainerLowest,
                   items: box.values.map((Subject subject) {
                     return DropdownMenuItem<dynamic>(
                       value: subject.key,
@@ -139,7 +133,7 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                           const SizedBox(width: 12),
                           Text(
                             subject.name,
-                            style: const TextStyle(fontSize: 15),
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ],
                       ),
@@ -153,111 +147,124 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                 );
               },
             ),
-            const SizedBox(height: 15),
-
-            // 2. DATE PICKER ROW
-            ListTile(
-              leading: const Icon(Icons.calendar_month),
-              title: const Text("Date"),
-              subtitle: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-              trailing: const Icon(Icons.edit, size: 20),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate,
-                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (picked != null) {
-                  setState(() => _selectedDate = picked);
-                }
-              },
-            ),
-
-            // 3. START TIME PICKER ROW
-            ListTile(
-              leading: const Icon(Icons.access_time),
-              title: const Text("Start Time"),
-              subtitle: Text(_selectedStartTime.format(context)),
-              trailing: const Icon(Icons.edit, size: 20),
-              onTap: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: _selectedStartTime,
-                );
-                if (picked != null) {
-                  setState(() {
-                    _selectedStartTime = picked;
-                    if (!_customEndTime) {
-                      _selectedEndTime = TimeOfDay(
-                        hour: picked.hour + 1,
-                        minute: picked.minute,
-                      );
-                    }
-                  });
-                }
-              },
-            ),
-
-            // 4. END TIME PICKER ROW
-            ListTile(
-              leading: const Icon(Icons.access_time),
-              title: const Text("End Time"),
-              subtitle: Text(_selectedEndTime.format(context)),
-              trailing: const Icon(Icons.edit, size: 20),
-              onTap: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: _selectedEndTime,
-                );
-                if (picked != null) {
-                  setState(() {
-                    _customEndTime = true;
-                    _selectedEndTime = picked;
-                  });
-                }
-              },
-            ),
-
-            // 5. ROOM TEXT FIELD
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: TextFormField(
-                controller: _roomController,
-                textCapitalization: TextCapitalization.none,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.room),
-                  labelText: "Room No.",
-                  hintText: "101, 205, A-15",
-                  labelStyle: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+            const SizedBox(height: 10),
+            if (subjectAvailable) ...[
+              // 2. ROOM TEXT FIELD
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: _roomController,
+                  textCapitalization: TextCapitalization.none,
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.room),
+                    labelText: "Room No.",
+                    hintText: "101, 205, A-15",
+                    labelStyle: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                    filled: true,
+                    fillColor: theme.colorScheme.surfaceContainerLowest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
-            ),
+
+              // 3. DATE PICKER ROW
+              ListTile(
+                title: const Text("Date"),
+                subtitle:
+                    Text(DateFormat('dd MMMM yyyy').format(_selectedDate)),
+                leading: const Icon(Icons.calendar_month),
+                trailing: const Icon(Icons.edit, size: 20),
+                iconColor: colorScheme.onSurface,
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                  }
+                },
+              ),
+
+              // 4. START TIME PICKER ROW
+              ListTile(
+                leading: const Icon(Icons.access_time),
+                title: const Text("Start Time"),
+                subtitle: Text(_selectedStartTime.format(context)),
+                trailing: const Icon(Icons.edit, size: 20),
+                iconColor: colorScheme.onSurface,
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: _selectedStartTime,
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedStartTime = picked;
+                      if (!_customEndTime) {
+                        _selectedEndTime = TimeOfDay(
+                          hour: picked.hour + 1,
+                          minute: picked.minute,
+                        );
+                      }
+                    });
+                  }
+                },
+              ),
+
+              // 5. END TIME PICKER ROW
+              ListTile(
+                leading: const Icon(Icons.access_time),
+                title: const Text("End Time"),
+                subtitle: Text(_selectedEndTime.format(context)),
+                trailing: const Icon(Icons.edit, size: 20),
+                iconColor: colorScheme.onSurface,
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: _selectedEndTime,
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _customEndTime = true;
+                      _selectedEndTime = picked;
+                    });
+                  }
+                },
+              ),
+            ],
+
             const SizedBox(height: 10),
 
             // 6. ACTION BUTTONS
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text("Cancel"),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 64),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
+                    if (!subjectAvailable) {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => AddSubjectScreen()));
+                    }
                     if (_selectedSubjectId == null) return;
 
                     String roomText = _roomController.text.trim().isEmpty
@@ -266,12 +273,10 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
 
                     await DatabaseService.lectureInput(
                       _selectedSubjectId,
-                      'semester', //TODO
+                      DatabaseService.getActiveSemesterId(),
                       DateTime(_selectedDate.year, _selectedDate.month,
                           _selectedDate.day),
-
                       _selectedStartTime.hour,
-
                       _selectedStartTime.minute,
                       _selectedEndTime.hour,
                       _selectedEndTime.minute,
@@ -281,11 +286,11 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                     );
 
                     if (context.mounted) {
-                      Navigator.pop(context,
-                          true); // Return true to request parent list update
+                      Navigator.pop(context, true);
                     }
                   },
-                  child: const Text("Save Lecture"),
+                  child:
+                      Text((subjectAvailable) ? "Save Lecture" : 'Add Subject'),
                 ),
               ],
             ),

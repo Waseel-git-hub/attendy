@@ -64,11 +64,14 @@ class _OnboardingSemesterSetupScreenState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final dateFormat = DateFormat('dd MMM, yyyy');
     final hasDates = widget.setupDraft.startDate != null &&
         widget.setupDraft.endDate != null;
 
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
@@ -76,12 +79,13 @@ class _OnboardingSemesterSetupScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 24),
               Text(
                 'Welcome to Attendy',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                ),
               ),
 
               const SizedBox(height: 32),
@@ -89,11 +93,34 @@ class _OnboardingSemesterSetupScreenState
               // Semester Name Field
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: colorScheme.onSurface),
+                decoration: InputDecoration(
                   labelText: 'Semester Name',
+                  labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                   hintText: 'e.g., Semester 1, Fall 2026',
-                  prefixIcon: Icon(Icons.school_outlined),
-                  border: OutlineInputBorder(),
+                  hintStyle:
+                      TextStyle(color: colorScheme.onSurface.withOpacity(0.4)),
+                  prefixIcon: Icon(Icons.school_outlined,
+                      color: colorScheme.onSurfaceVariant),
+                  filled: true,
+                  fillColor: colorScheme.surfaceContainerHigh,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: colorScheme.primary, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colorScheme.error),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colorScheme.error, width: 2),
+                  ),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -108,9 +135,10 @@ class _OnboardingSemesterSetupScreenState
               // Date Range Selector Card
               Card(
                 elevation: 0,
+                color: colorScheme.surfaceContainerLow,
                 shape: RoundedRectangleBorder(
-                  side: BorderSide(color: Theme.of(context).dividerColor),
-                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -119,51 +147,63 @@ class _OnboardingSemesterSetupScreenState
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.calendar_month_outlined,
-                              color: Colors.grey),
+                          Icon(Icons.calendar_month_outlined,
+                              color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 8),
                           Text(
                             'Semester Duration',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       if (hasDates) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _buildDateColumn(
+                                colorScheme,
                                 'START DATE',
                                 dateFormat
                                     .format(widget.setupDraft.startDate!)),
-                            const Icon(Icons.arrow_forward_rounded,
-                                color: Colors.grey, size: 16),
-                            _buildDateColumn('END DATE',
+                            Icon(Icons.arrow_forward_rounded,
+                                color: colorScheme.onSurfaceVariant, size: 16),
+                            _buildDateColumn(colorScheme, 'END DATE',
                                 dateFormat.format(widget.setupDraft.endDate!)),
                           ],
                         ),
                       ] else ...[
-                        const Text(
+                        Text(
                           'No active date limits defined yet.',
                           style: TextStyle(
-                              color: Colors.redAccent,
-                              fontStyle: FontStyle.italic),
+                              color: colorScheme.error,
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500),
                         ),
                       ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
                           onPressed: _pickDateRange,
-                          child: Text(hasDates
-                              ? 'Modify Date Limits'
-                              : 'Select Academic Term Calendar'),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: colorScheme.outline),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(
+                            hasDates
+                                ? 'Modify Date Limits'
+                                : 'Select Academic Term Calendar',
+                            style: TextStyle(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     ],
@@ -172,32 +212,35 @@ class _OnboardingSemesterSetupScreenState
               ),
               const SizedBox(height: 24),
 
-              _buildSubjectSummarySection(),
+              _buildSubjectSummarySection(theme, colorScheme),
 
               const SizedBox(height: 40),
 
               // Continue Navigation Control
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       if (!hasDates) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Please select your semester term duration range.')),
+                          SnackBar(
+                            content: const Text(
+                                'Please select your semester term duration range.'),
+                            backgroundColor: colorScheme.error,
+                          ),
                         );
                         return;
                       }
 
-                      // Extra guard checking the full draft rules before hitting onComplete
                       if (!validateFinalSetupDraft(widget.setupDraft)) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Setup validation failed. Check your schedule slots.')),
+                          SnackBar(
+                            content: const Text(
+                                'Setup validation failed. Check your schedule slots.'),
+                            backgroundColor: colorScheme.error,
+                          ),
                         );
                         return;
                       }
@@ -205,10 +248,18 @@ class _OnboardingSemesterSetupScreenState
                       widget.onComplete();
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onSurface,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Complete Setup', style: TextStyle(fontSize: 16)),
+                      Text('Complete Setup',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward_rounded, size: 18),
                     ],
@@ -222,27 +273,31 @@ class _OnboardingSemesterSetupScreenState
     );
   }
 
-  Widget _buildDateColumn(String label, String dateStr) {
+  Widget _buildDateColumn(
+      ColorScheme colorScheme, String label, String dateStr) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-              fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              fontSize: 11,
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
         Text(
           dateStr,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface),
         ),
       ],
     );
   }
 
-  // 💡 Subject Summary Helper Widget
-  Widget _buildSubjectSummarySection() {
-    final theme = Theme.of(context);
+  Widget _buildSubjectSummarySection(ThemeData theme, ColorScheme colorScheme) {
     final subjects = widget.setupDraft.subjects;
 
     return Column(
@@ -257,12 +312,13 @@ class _OnboardingSemesterSetupScreenState
                 'Subject Summary',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
               Text(
                 '${subjects.length} Total',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -275,45 +331,46 @@ class _OnboardingSemesterSetupScreenState
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.errorContainer.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: theme.colorScheme.error.withOpacity(0.3)),
+              color: colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.error.withOpacity(0.3)),
             ),
             child: Row(
               children: [
                 Icon(Icons.warning_amber_rounded,
-                    color: theme.colorScheme.error),
+                    color: colorScheme.onErrorContainer),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'No subjects added yet! Go back to add subjects.',
-                    style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                    style: TextStyle(
+                        color: colorScheme.onErrorContainer,
+                        fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
           )
         else
-          // Dynamic wrapping grid layout to fit subject rows cleanly
           Wrap(
-            spacing: 8.0, // horizontal gap between chips
-            runSpacing: 8.0, // vertical gap between rows
+            spacing: 8.0,
+            runSpacing: 8.0,
             children: subjects.map((subject) {
-              // Deduce total lecture count for this specific subject draft
               final int slotCount = widget.setupDraft.timetableSlots
                   .where(
                       (slot) => slot.subjectTemporaryId == subject.temporaryId)
                   .length;
 
+              final Color baseColor = Color(subject.colorValue);
+
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Color(subject.colorValue).withOpacity(0.15),
+                  color: baseColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Color(subject.colorValue).withOpacity(0.4),
+                    color: baseColor.withOpacity(0.4),
                     width: 1,
                   ),
                 ),
@@ -324,7 +381,7 @@ class _OnboardingSemesterSetupScreenState
                       IconData(subject.iconCodePoint,
                           fontFamily: 'MaterialIcons'),
                       size: 16,
-                      color: Color(subject.colorValue),
+                      color: baseColor,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -332,23 +389,27 @@ class _OnboardingSemesterSetupScreenState
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    // Small badge bubble highlighting the weekly lecture occurrences
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Color(subject.colorValue),
+                        color: baseColor,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '${slotCount}x',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: Colors.white,
+                          // Uses ThemeData's logic to figure out if white or black text sits best on this specific subject label color tint
+                          color:
+                              ThemeData.estimateBrightnessForColor(baseColor) ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

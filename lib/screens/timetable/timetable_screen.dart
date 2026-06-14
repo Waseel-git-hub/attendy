@@ -34,11 +34,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
   void initState() {
     super.initState();
 
-    // 💡 LOAD PERSISTED CONFIGURATIONS FROM HIVE
     startHour = DatabaseService.settingsBox.get('startHour', defaultValue: 8);
     endHour = DatabaseService.settingsBox.get('endHour', defaultValue: 18);
 
-    // Hive maps look like Map<dynamic, dynamic>, so we cast it safely back to Map<int, bool>
     final rawDays = DatabaseService.settingsBox.get('visibleDays');
     visibleDays = Map<int, bool>.from(rawDays ??
         {1: true, 2: true, 3: true, 4: true, 5: true, 6: false, 7: false});
@@ -62,7 +60,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
   int get totalHoursCount => endHour - startHour + 2;
 
   // 🛠️ PERSISTED SHEET SELECTION
-  void _openFilterSettings() {
+  //TODO: Rework needed
+  void _openFilterSettings(bool hourFormat24) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -87,14 +86,15 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text("Show Days",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      )),
+                  const SizedBox(height: 4),
                   Wrap(
-                    spacing: 8.0, // Gap between adjacent chips horizontally
-                    runSpacing: 4.0, // Gap between lines vertically
-                    alignment: WrapAlignment
-                        .start, // Aligns chips neatly to the left boundary
+                    spacing: 8.0,
+                    runSpacing: 4.0,
+                    alignment: WrapAlignment.start,
                     children: List.generate(7, (index) {
                       int dayNum = index + 1;
                       bool isSelected = visibleDays[dayNum] ?? false;
@@ -102,8 +102,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                         label: Text(dayNames[index]),
                         selected: isSelected,
                         onSelected: (bool value) async {
-                          if (!value && activeDaysCount <= 1)
-                            return; // Prevent breaking grid empty layouts
+                          if (!value && activeDaysCount <= 1) return;
 
                           setModalState(() => visibleDays[dayNum] = value);
                           setState(() => visibleDays[dayNum] = value);
@@ -115,25 +114,31 @@ class _TimetableScreenState extends State<TimetableScreen> {
                       );
                     }),
                   ),
-                  const SizedBox(height: 20),
-                  const Text("Select Active Time",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
+                  const Text(
+                    "Select Active Time",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<int>(
                           decoration: const InputDecoration(
-                              labelText: "Start Hour",
-                              border: OutlineInputBorder()),
+                            labelText: "Start Hour",
+                            border: OutlineInputBorder(),
+                          ),
                           value: startHour,
                           items: List.generate(
                               13,
                               (i) => DropdownMenuItem(
                                   value: i + 6,
-                                  child: Text(
-                                      "${i + 6 == 12 ? 12 : (i + 6) % 12} ${i + 6 >= 12 ? 'PM' : 'AM'}"))),
+                                  child: Text((hourFormat24)
+                                      ? '${i + 6}:00'
+                                      : "${i + 6 == 12 ? 12 : (i + 6) % 12}:00 ${i + 6 >= 12 ? 'PM' : 'AM'}"))),
                           onChanged: (val) async {
                             if (val != null && val < endHour) {
                               setModalState(() => startHour = val);
@@ -153,11 +158,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
                               border: OutlineInputBorder()),
                           value: endHour,
                           items: List.generate(
-                              13,
+                              12,
                               (i) => DropdownMenuItem(
-                                  value: i + 13,
-                                  child: Text(
-                                      "${i + 13 == 12 ? 12 : (i + 13) % 12} ${i + 13 >= 12 ? 'PM' : 'AM'}"))),
+                                  value: i + 12,
+                                  child: Text((hourFormat24)
+                                      ? '${i + 12}:00'
+                                      : "${i + 12 == 12 ? 12 : (i + 13) % 12}:00 ${i + 13 >= 12 ? 'PM' : 'AM'}"))),
                           onChanged: (val) async {
                             if (val != null && val > startHour) {
                               setModalState(() => endHour = val);
@@ -185,23 +191,25 @@ class _TimetableScreenState extends State<TimetableScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    bool hourFormat24 = true;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Timetable",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 22)),
         elevation: 0,
         actions: [
           IconButton(
             tooltip: 'Filter View Settings',
             icon: const Icon(Icons.tune_rounded),
-            onPressed: _openFilterSettings,
+            onPressed: () {
+              _openFilterSettings(hourFormat24);
+            },
           ),
           IconButton(
             tooltip: 'Edit Timetable',
             icon: const Icon(Icons.edit_calendar_rounded),
             onPressed: () async {
-              // 1. Show a quick loader while production records are fetched and mapped
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -251,7 +259,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStickyTimeBar(colorScheme.onSurface),
+                    _buildStickyTimeBar(colorScheme.onSurface, hourFormat24),
                     Expanded(
                       child: _buildMainGrid(
                           colorScheme.onSurface, dynamicColumnWidth),
@@ -295,7 +303,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 shortDays[index],
                 style: TextStyle(
                     color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 12),
               ),
             ),
@@ -305,7 +313,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     );
   }
 
-  Widget _buildStickyTimeBar(Color color) {
+  Widget _buildStickyTimeBar(Color color, bool hourFormat24) {
     return SingleChildScrollView(
       controller: _timeBarScrollController,
       scrollDirection: Axis.vertical,
@@ -326,16 +334,18 @@ class _TimetableScreenState extends State<TimetableScreen> {
               height: hourHeight,
               child: Align(
                 alignment: Alignment.topCenter,
-                // 💡 Translate shifts the text block upwards slightly
-                // so the line cuts right through the center of the text
                 child: Transform.translate(
                   offset: const Offset(0, -7.0),
                   child: Text(
-                    "$displayHour \n$period",
+                    (0 != index)
+                        ? (hourFormat24)
+                            ? "$hour:00"
+                            : "$displayHour:00\n$period"
+                        : '',
                     style: TextStyle(
                       color: color.withOpacity(0.6),
                       fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -387,7 +397,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
           height: hourHeight,
           decoration: BoxDecoration(
               border:
-                  Border(bottom: BorderSide(color: color.withOpacity(0.1)))),
+                  Border(bottom: BorderSide(color: color.withOpacity(0.15)))),
         ),
       ),
     );

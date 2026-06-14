@@ -69,7 +69,6 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     });
   }
 
-  // Pass the subject or its key into this method depending on your setup
   void _showAddExtraLectureSheet(
       BuildContext context, dynamic currentSubjectKey) async {
     // 1. Open the modal sheet
@@ -104,11 +103,11 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          _subject!.name,
+          'Subject Info',
           style: TextStyle(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.bold,
-              fontSize: 20),
+              fontSize: 22),
         ),
         actions: [
           IconButton(
@@ -130,11 +129,8 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
           indicatorColor: colorScheme.primary,
           indicatorSize: TabBarIndicatorSize.tab,
           labelColor: colorScheme.primary,
-          unselectedLabelColor: colorScheme.onSurface.withOpacity(0.6),
-          labelStyle: TextStyle(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-              fontSize: 15),
+          unselectedLabelColor: colorScheme.onSurfaceVariant,
+          labelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
           tabs: const [
             Tab(text: "Overview"),
             Tab(text: "Lectures"),
@@ -210,8 +206,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHigh,
-                border: Border.all(
-                    color: theme.colorScheme.onSurface.withOpacity(0.1)),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -222,6 +217,8 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
+                      border: Border.all(
+                          color: colorScheme.outlineVariant, width: 2),
                       color: Color(subject.colorValue)
                           .withOpacity(0.15), // Tinted background
                       borderRadius:
@@ -231,13 +228,13 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                       child: Icon(
                         IconData(subject.iconCodePoint,
                             fontFamily: 'MaterialIcons'),
-                        size: 48,
+                        size: 50,
                         color: Color(subject
                             .colorValue), // Vibrant icon accent matching chosen color
                       ),
                     ),
                   ),
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 20),
 
                   // 2. RIGHT SIDE: Subject Text Details Hierarchy
                   Expanded(
@@ -251,7 +248,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                             subject.name,
                             style: TextStyle(
                               color: colorScheme.onSurface,
-                              fontSize: 26,
+                              fontSize: 32,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 0.5,
                             ),
@@ -259,22 +256,25 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                         ),
 
                         const SizedBox(height: 8),
-                        // Minimum Attendance Row with Shield Icon
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               "Minimum \nAttendance",
                               style: TextStyle(
-                                color: colorScheme.onSurface.withOpacity(0.6),
-                                fontSize: 13,
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             SizedBox(width: 12),
                             Text(
                               ':',
-                              style: TextStyle(fontSize: 19),
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurfaceVariant),
                             ),
                             SizedBox(width: 12),
                             Text(
@@ -282,7 +282,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                               style: TextStyle(
                                 color: Color(subject.colorValue),
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -294,22 +294,20 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   _selectedMonthKey == null
                       ? "Overall Overview"
-                      : // Generates: "May Breakdown"
+                      : // "May Breakdown"
                       "${DateFormat('MMMM').format(DateFormat('yyyy-MM').parse(_selectedMonthKey!))} Overview",
                   style: TextStyle(
                       color: colorScheme.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600),
                 ),
-
-                // Clean return link mechanism that updates widget states
                 if (!isOverall)
                   TextButton.icon(
                     onPressed: () {
@@ -321,14 +319,15 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                     icon: const Icon(Icons.clear_rounded, size: 16),
                     label: const Text("Reset View"),
                     style: TextButton.styleFrom(
-                      foregroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimaryContainer,
+                      backgroundColor: colorScheme.primaryContainer,
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             _buildAttendanceSummaryCard(
                 attendancePercentage: overallAttendance,
                 targetPercentage: _subject!.minAttend,
@@ -337,7 +336,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 absentCount: absentCount,
                 totalCount: totalCount,
                 theme: theme),
-            const SizedBox(height: 25),
+            const SizedBox(height: 24),
 
             // C. MONTHLY OVERVIEW TRACKER SECTION
             if (isOverall) ...[
@@ -346,17 +345,17 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 children: [
                   const Text("Monthly Overview",
                       style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               if (_cacheMonthKeys.isEmpty)
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
                   child: Center(
                       child: Text("No monthly data tracked yet.",
-                          style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.6)))),
+                          style:
+                              TextStyle(color: colorScheme.onSurfaceVariant))),
                 )
               else
                 ..._cacheMonthKeys.map((monthKey) {
@@ -365,7 +364,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                     child: _buildMonthlyProgressRow(theme, monthKey),
                   );
                 }),
-              const SizedBox(height: 25),
+              const SizedBox(height: 4),
             ],
 
             // D. RECENT HISTORY SHORTLIST VIEW
@@ -374,54 +373,30 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
               children: [
                 const Text("Recent Lectures",
                     style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                TextButton(
-                    onPressed: () => _tabController.animateTo(1),
-                    child: const Text("View all")),
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                TextButton.icon(
+                  onPressed: () => _tabController.animateTo(1),
+                  label: const Text("View all"),
+                  icon: const Icon(Icons.view_headline_rounded, size: 16),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colorScheme.onPrimaryContainer,
+                    backgroundColor: colorScheme.primaryContainer,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 10),
             if (_allLectures.isEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 12.0),
                 child: Center(
                     child: Text("No monthly data tracked yet.",
-                        style: TextStyle(
-                            color: colorScheme.onSurface.withOpacity(0.6)))),
+                        style: TextStyle(color: colorScheme.onSurfaceVariant))),
               )
             else
               ...displayLectures
                   .take(3)
                   .map((lecture) => _buildRecentLectureRow(lecture, theme)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatMetricChip(
-      String label, int value, Color color, ThemeData theme) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: theme.colorScheme.onSurface.withOpacity(0.1)),
-        ),
-        child: Column(
-          children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurface.withOpacity(0.9))),
-            const SizedBox(height: 6),
-            Text(
-              value.toString(),
-              style: TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: color),
-            ),
           ],
         ),
       ),
@@ -443,9 +418,16 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
         });
       },
       child: Container(
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            color: theme.colorScheme.surfaceContainerLow,
+            border: BoxBorder.all(
+              color: theme.colorScheme.outlineVariant,
+            )),
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
+            const SizedBox(width: 6),
             SizedBox(
                 width: 40,
                 child: Text(month,
@@ -455,7 +437,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 borderRadius: BorderRadius.circular(8),
                 child: LinearProgressIndicator(
                   value: percentage,
-                  minHeight: 8,
+                  minHeight: 6,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   valueColor:
                       AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
@@ -490,6 +472,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     } else if (lecture.status == 'Absent') {
       statusColor = Colors.redAccent.shade200;
     }
+    final colorScheme = theme.colorScheme;
 
     String dateStr = DateFormat('dd MMM, E').format(lecture.date);
 
@@ -497,19 +480,23 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       decoration: BoxDecoration(
-        color: theme.hoverColor,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.1)),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(dateStr,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+          Text(
+            dateStr,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
           Row(
             children: [
-              Icon(Icons.circle, size: 10, color: statusColor),
+              Icon(Icons.circle, size: 12, color: statusColor),
               const SizedBox(width: 8),
               Text(lecture.status,
                   style: TextStyle(
@@ -541,15 +528,15 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       children: [
         // 1. TOP MAIN SUMMARY BLOCK
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHigh,
-            border:
-                Border.all(color: theme.colorScheme.onSurface.withOpacity(0.1)),
+            color: colorScheme.surfaceContainerLow,
+            border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             children: [
+              const SizedBox(width: 12),
               CustomCircleProgress(
                 percentage: attendancePercentage,
                 size: 120,
@@ -559,26 +546,27 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 labelColor: (attendancePercentage > _subject!.minAttend ||
                         totalCount == 0)
                     ? colorScheme.onSurface
-                    : Colors.orangeAccent,
+                    : Colors.orangeAccent, // TODO: Orange color
                 showSubLabel: true,
                 subLabel: 'Overall',
-                progressColor: Colors.greenAccent.shade400,
+                progressColor: colorScheme.primary,
                 emptyProgressColor: (totalCount != 0)
-                    ? Colors.redAccent.shade200
-                    : colorScheme.onSurface.withOpacity(0.1),
+                    ? Colors.redAccent.shade200 // TODO: Red color
+                    : colorScheme.surfaceContainerHigh,
               ),
-              const SizedBox(width: 65),
+              const SizedBox(width: 24),
 
               // Text Details Insights Column
               Expanded(
+                  child: Center(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Present',
                       style: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.65),
-                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
                       ),
                     ),
                     Text(
@@ -593,8 +581,8 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                     Text(
                       "Absent",
                       style: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.65),
-                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
                       ),
                     ),
                     Text(
@@ -609,8 +597,8 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                     Text(
                       "Total",
                       style: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.65),
-                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
                       ),
                     ),
                     Text(
@@ -623,24 +611,49 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                     ),
                   ],
                 ),
-              )
+              ))
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
 
         // 2. COUNTER CHIP TILES ROW
         Row(
           children: [
-            _buildStatMetricChip(
-                "${(requiredLecturesValue < 0) ? 'Skippable' : 'Required'} Lectures",
-                (requiredLecturesValue < 0)
-                    ? -requiredLecturesValue
-                    : requiredLecturesValue,
-                (requiredLecturesValue < 0)
-                    ? theme.colorScheme.onSurface
-                    : Colors.orange.shade200,
-                theme),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                        "${(requiredLecturesValue < 0) ? 'Skippable' : 'Required'} Lectures",
+                        style: TextStyle(
+                            fontSize: 16,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500)),
+                    const SizedBox(width: 16),
+                    Text(
+                      ((requiredLecturesValue < 0)
+                              ? -requiredLecturesValue
+                              : requiredLecturesValue)
+                          .toString(),
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: (requiredLecturesValue < 0)
+                              ? theme.colorScheme.onSurface
+                              : Colors.orange.shade200),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ],
@@ -682,7 +695,6 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
 
     void showFilterSheet(
         BuildContext context, ThemeData theme, dynamic subjectID) {
-      // Local state instances inside the modal so choices don't immediately apply until confirmed
       String tempStatus = _selectedStatusFilter;
       String? tempMonth = _selectedLecturesMonthKey;
       String tempSort = _sortOrder;
@@ -690,8 +702,6 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: const Color(
-            0xFF161622), // Deep premium dark background matching your UI
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
@@ -711,26 +721,33 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: Colors.white24,
+                            color: colorScheme.onSurfaceVariant,
                             borderRadius: BorderRadius.circular(2)),
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text("Filter Lectures",
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 24),
+                    const Text(
+                      "Filter Lectures",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
                     // SECTION 1: STATUS CHIPS
-                    const Text("Status",
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white70)),
-                    const SizedBox(height: 10),
+                    Text(
+                      "Status",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 4,
+                      runSpacing: 4,
                       children: ["All", "Present", "Absent", "Unmarked"]
                           .map((status) {
                         final isSelected = tempStatus == status;
@@ -739,27 +756,31 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                           selected: isSelected,
                           onSelected: (_) =>
                               setModalState(() => tempStatus = status),
-                          selectedColor:
-                              const Color(0xFF4F46E5), // Blue accent theme
-                          backgroundColor: Colors.white.withOpacity(0.05),
+                          selectedColor: colorScheme.primaryContainer,
+                          backgroundColor: colorScheme.surfaceContainerLow,
                           labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white60,
+                              color: isSelected
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               side: BorderSide.none),
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // SECTION 2: MONTH SELECTION CHIPS
-                    const Text("Month",
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white70)),
-                    const SizedBox(height: 10),
+                    Text(
+                      "Month",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -769,15 +790,15 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                             selected: tempMonth == null,
                             onSelected: (_) =>
                                 setModalState(() => tempMonth = null),
-                            selectedColor: const Color(0xFF4F46E5),
-                            backgroundColor: Colors.white.withOpacity(0.05),
+                            selectedColor: colorScheme.primaryContainer,
+                            backgroundColor: colorScheme.surfaceContainerLow,
                             labelStyle: TextStyle(
                                 color: tempMonth == null
-                                    ? Colors.white
-                                    : Colors.white60,
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(16),
                                 side: BorderSide.none),
                           ),
                           ..._cacheMonthKeys.map((monthKey) {
@@ -791,15 +812,16 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                                 selected: isSelected,
                                 onSelected: (_) =>
                                     setModalState(() => tempMonth = monthKey),
-                                selectedColor: const Color(0xFF4F46E5),
-                                backgroundColor: Colors.white.withOpacity(0.05),
+                                selectedColor: colorScheme.primaryContainer,
+                                backgroundColor:
+                                    colorScheme.surfaceContainerLow,
                                 labelStyle: TextStyle(
                                     color: isSelected
-                                        ? Colors.white
-                                        : Colors.white60,
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w600),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(16),
                                     side: BorderSide.none),
                               ),
                             );
@@ -807,15 +829,18 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // SECTION 3: SORT ENGINE SELECTION CONTROL
-                    const Text("Sort By",
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white70)),
-                    const SizedBox(height: 10),
+                    Text(
+                      "Sort By",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Wrap(
                       spacing: 8,
                       children: ["Newest First", "Oldest First"].map((order) {
@@ -825,26 +850,31 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                           selected: isSelected,
                           onSelected: (_) =>
                               setModalState(() => tempSort = order),
-                          selectedColor: const Color(0xFF4F46E5),
-                          backgroundColor: Colors.white.withOpacity(0.05),
+                          selectedColor: colorScheme.primaryContainer,
+                          backgroundColor: colorScheme.surfaceContainerLow,
                           labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white60,
+                              color: isSelected
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               side: BorderSide.none),
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // SECTION 4: ACTIONS SEGMENT CONTROL BUTTON ROW
                     Row(
                       children: [
                         Expanded(
-                          child: TextButton(
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              backgroundColor: colorScheme.surfaceContainerHigh,
+                              foregroundColor: colorScheme.onSurfaceVariant,
+                            ),
                             onPressed: () {
-                              // Clear everything and dismiss modal instantly
                               setState(() {
                                 _selectedStatusFilter = "All";
                                 _selectedLecturesMonthKey = null;
@@ -852,11 +882,11 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text("Reset",
-                                style: TextStyle(
-                                    color: Colors.white60,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16)),
+                            label: const Text(
+                              "Reset",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -864,13 +894,12 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                           flex: 2,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4F46E5),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: colorScheme.primary,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             onPressed: () {
-                              // Flush local states back to global page state scope definitions
                               setState(() {
                                 _selectedStatusFilter = tempStatus;
                                 _selectedLecturesMonthKey = tempMonth;
@@ -878,11 +907,14 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text("Apply",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16)),
+                            child: const Text(
+                              "Apply",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -897,6 +929,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     }
 
     return Scaffold(
+      //TODO: Button
       floatingActionButtonLocation: lectures.isNotEmpty
           ? FloatingActionButtonLocation.endFloat
           : FloatingActionButtonLocation.centerTop,
@@ -908,16 +941,17 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
           height: 55,
           child: FloatingActionButton.extended(
             backgroundColor: colorScheme.primary,
+            foregroundColor: Colors.white,
             elevation: 2,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            icon: Icon(Icons.add_rounded, color: colorScheme.onSurface),
-            label: Text(
+            icon: const Icon(Icons.add_rounded),
+            label: const Text(
               "Add Extra Lecture",
               style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             onPressed: () {
               _showAddExtraLectureSheet(context, _subject!.key);
@@ -933,8 +967,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(
-                    color: colorScheme.onSurface.withOpacity(0.05), width: 1),
+                bottom: BorderSide(color: colorScheme.outlineVariant, width: 1),
               ),
             ),
             child: Row(
@@ -955,15 +988,15 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                                   .format(parsedFilterMonth!),
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface.withOpacity(0.8)),
+                              color: colorScheme.onSurfaceVariant),
                         ),
                       ),
                       if (_selectedStatusFilter != "All") ...[
                         Text(" • ",
-                            style: TextStyle(
-                                color: colorScheme.onSurface.withOpacity(0.4))),
+                            style:
+                                TextStyle(color: colorScheme.onSurfaceVariant)),
                         Text(
                           _selectedStatusFilter,
                           style: TextStyle(
@@ -982,15 +1015,15 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
 
                 // Interactive Filter Sheet Trigger Button
                 InkWell(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   onTap: () => showFilterSheet(context, theme, subject.key),
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: colorScheme.primary),
-                      color: colorScheme.primary.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -999,10 +1032,10 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: colorScheme.primary)),
-                        const SizedBox(width: 8),
+                                color: colorScheme.onPrimaryContainer)),
+                        const SizedBox(width: 6),
                         Icon(Icons.keyboard_arrow_down_rounded,
-                            size: 20, color: colorScheme.primary),
+                            size: 20, color: colorScheme.onPrimaryContainer),
                       ],
                     ),
                   ),
@@ -1017,7 +1050,11 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 ? Center(
                     child: Text(
                       "No lectures recorded.",
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -1062,9 +1099,9 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                               child: Text(
                                 DateFormat('MMMM yyyy').format(lecture.date),
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.onSurface.withOpacity(0.5),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -1086,7 +1123,7 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
     final status = lecture.status;
     final colorScheme = theme.colorScheme;
 
-    Color statusColor = colorScheme.onSurface.withOpacity(0.6);
+    Color statusColor = colorScheme.onSurfaceVariant;
     IconData statusIcon = Icons.question_mark_rounded;
     if (status == 'Present') {
       statusColor = Colors.greenAccent.shade400;
@@ -1123,11 +1160,14 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                 Text(dayStr,
                     style:
                         TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text(monthStr,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: colorScheme.onSurface.withOpacity(0.6),
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  monthStr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             indicatorNode: Icon(statusIcon, size: 22, color: statusColor),
@@ -1139,9 +1179,9 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(16),
-              ),
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colorScheme.outlineVariant)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1153,42 +1193,46 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
                         status,
                         style: TextStyle(
                             color: statusColor,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             fontSize: 16),
                       ),
                       const SizedBox(height: 4),
                       Text(timeString,
                           style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.4),
+                              color: colorScheme.onSurfaceVariant,
                               fontSize: 13)),
                     ],
                   ),
                   // Location Label Tag Box
                   Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 20,
-                            color: colorScheme.onSurface.withOpacity(0.8),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "${(lecture.roomNo == '') ? '---' : lecture.roomNo}",
-                            style: TextStyle(
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.8),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      )),
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            BoxBorder.all(color: colorScheme.outlineVariant)),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: colorScheme.onSurface,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          //TODO : Room No. Default
+                          (lecture.roomNo == 'Not Specified')
+                              ? '---'
+                              : "$lecture.roomNo",
+                          style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1200,10 +1244,10 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
 
 //-------------------------------------------------------------------------
 
+  //  Sorry but aukaat ke bahr h iska theme sahi krna 🙂
   Widget _buildAnalyticsTab(
       BuildContext context, Subject subject, String monthKey, ThemeData theme) {
     final colorScheme = theme.colorScheme;
-    // 2. Compute dynamic historical timeline data points from cached keys (Max 5 Months)
     final List<Map<String, dynamic>> trendData = [];
 
     for (String mKey in _cacheMonthKeys.reversed.toList()) {
@@ -1243,9 +1287,9 @@ class _SubjectStatsPageState extends State<SubjectStatsPage>
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(24),
-          ),
+              color: theme.colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: colorScheme.outlineVariant)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -22,7 +22,8 @@ class LectureCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final Subject? subject = DatabaseService.getSubjectById(lecture.subjectID);
 
-    bool lectureMarked = lecture.status != "NONE";
+    bool isRoomNo = lecture.roomNo != 'Not Specified';
+    bool lectureMarked = lecture.status != "Not Marked";
     Color subjectColor = Color(subject!.colorValue);
 
     AttendanceCount monthCount = DatabaseService.getAttendance(
@@ -44,12 +45,12 @@ class LectureCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: theme.cardColor,
+              color: colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: colorScheme.onSurface.withOpacity(0.3),
+                color: colorScheme.outlineVariant,
                 width: 1.5,
               ),
             ),
@@ -60,13 +61,13 @@ class LectureCard extends StatelessWidget {
                   children: [
                     // Subject Icon Container
                     Container(
-                      height: 52,
-                      width: 52,
+                      height: 42,
+                      width: 42,
                       decoration: BoxDecoration(
-                        color: subjectColor.withOpacity(0.2),
+                        color: colorScheme.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: subjectColor.withOpacity(0.5),
+                          color: colorScheme.outlineVariant,
                           width: 0.8,
                         ),
                       ),
@@ -85,34 +86,25 @@ class LectureCard extends StatelessWidget {
                           Text(
                             subject.name,
                             style: TextStyle(
-                                color: colorScheme.onSurface,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
+                              color: colorScheme.onSurface,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          const SizedBox(height: 2),
                           Row(
                             children: [
+                              Icon(
+                                Icons.location_on,
+                                color: colorScheme.onSurfaceVariant,
+                                size: 12,
+                              ),
                               Text(
-                                  lecture.isExtraClass
-                                      ? "Extra Lecture"
-                                      : "Normal Lecture",
-                                  style: TextStyle(
-                                      color: colorScheme.onSurface
-                                          .withOpacity(0.4),
-                                      fontSize: 13))
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on,
-                                  color: colorScheme.onSurface.withOpacity(0.6),
-                                  size: 14),
-                              Text(" ${lecture.roomNo}",
-                                  style: TextStyle(
-                                      color: colorScheme.onSurface
-                                          .withOpacity(0.8),
-                                      fontSize: 13)),
+                                " ${(isRoomNo) ? lecture.roomNo : '---'}",
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -122,16 +114,17 @@ class LectureCard extends StatelessWidget {
                     circularPercent(lecture, subject, context),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  insightText,
-                  style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.7),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
-                ),
+                if (!lectureMarked)
+                  Text(
+                    insightText,
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 // Action Buttons Row
-                const SizedBox(height: 10),
+                SizedBox(height: (lectureMarked) ? 10 : 5),
                 Row(
                   children: [
                     _ActionButton(
@@ -141,11 +134,12 @@ class LectureCard extends StatelessWidget {
                       isSelected: lecture.status == "Cancelled",
                       isActive: lectureMarked,
                       onTap: () {
-                        if (lecture.status == "Cancelled")
+                        if (lecture.status == "Cancelled") {
                           DatabaseService.clearAttendance(lecture);
-                        else
+                        } else {
                           DatabaseService.updateAttendance(
                               lecture: lecture, newStatus: 'Cancelled');
+                        }
                       },
                     ),
                     const SizedBox(width: 8),
@@ -156,11 +150,12 @@ class LectureCard extends StatelessWidget {
                       isSelected: lecture.status == "Absent",
                       isActive: lectureMarked,
                       onTap: () {
-                        if (lecture.status == "Absent")
+                        if (lecture.status == "Absent") {
                           DatabaseService.clearAttendance(lecture);
-                        else
+                        } else {
                           DatabaseService.updateAttendance(
                               lecture: lecture, newStatus: 'Absent');
+                        }
                       },
                     ),
                     const SizedBox(width: 8),
@@ -171,11 +166,12 @@ class LectureCard extends StatelessWidget {
                       isSelected: lecture.status == "Present",
                       isActive: lectureMarked,
                       onTap: () {
-                        if (lecture.status == "Present")
+                        if (lecture.status == "Present") {
                           DatabaseService.clearAttendance(lecture);
-                        else
+                        } else {
                           DatabaseService.updateAttendance(
                               lecture: lecture, newStatus: 'Present');
+                        }
                       },
                     ),
                   ],
@@ -204,14 +200,15 @@ class LectureCard extends StatelessWidget {
         double displayPercent = livePercentage * 100;
         double minTarget = subject.minAttend.toDouble();
 
-        Color progressColor =
-            displayPercent >= minTarget ? Colors.greenAccent : Colors.redAccent;
+        Color progressColor = displayPercent >= minTarget
+            ? const Color(0xFF22C55E)
+            : const Color(0xFFEF4444);
 
         return CustomCircleProgress(
           percentage: displayPercent,
-          size: 56,
-          fontSize: 12,
-          strokeWidth: 5,
+          size: 50,
+          fontSize: 10,
+          strokeWidth: 3,
           progressColor: progressColor,
         );
       },
@@ -238,37 +235,29 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 170),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          duration: const Duration(milliseconds: 200),
+          height: 32,
           decoration: BoxDecoration(
             color: isSelected
-                ? color.withOpacity(0.27)
-                : (isActive ? color.withOpacity(0.15) : color.withOpacity(0.2)),
-            borderRadius: BorderRadius.circular(12),
+                ? color.withValues(alpha: 0.15)
+                : cs.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected
-                  ? color
-                  : (isActive
-                      ? color.withOpacity(0.1)
-                      : color.withOpacity(0.5)),
-              width: 1,
+              color: isSelected ? color : cs.outlineVariant,
             ),
           ),
-          child: Column(
-            children: [
-              Icon(icon,
-                  color: isSelected
-                      ? color
-                      : (isActive
-                          ? color.withOpacity(0.2)
-                          : color.withOpacity(0.7)),
-                  size: 18),
-              const SizedBox(height: 4),
-            ],
+          child: Center(
+            child: Icon(
+              icon,
+              size: 20,
+              color: isSelected ? color : cs.onSurfaceVariant,
+            ),
           ),
         ),
       ),

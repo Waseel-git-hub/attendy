@@ -5,7 +5,6 @@ import '../main.dart';
 //  SCREENS
 //  SERVICE
 import '../../services/backup_service.dart';
-import '../../services/AppTheme.dart';
 //  WIGDETS
 import '../widgets/bug_sheet.dart';
 //------------------------------------------------------------------------------
@@ -20,14 +19,23 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      appBar: AppBar(
+        title: const Text(
+          "Settings",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
       body: ListView(
         children: [
-          // Inside SettingsScreen ListView
-          _buildSectionHeader("Personalization"),
-          const SizedBox(height: 16),
-
+          _buildSectionHeader("Personalization", colorScheme.primary),
+          const SizedBox(height: 4),
           ValueListenableBuilder<ThemeMode>(
             valueListenable: themeNotifier,
             builder: (context, currentMode, child) {
@@ -43,7 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       "Theme Mode",
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 5),
                     SizedBox(
                       width: double.infinity,
                       child: SegmentedButton<ThemeMode>(
@@ -82,18 +89,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-
-          ListTile(
-            title: const Text("Accent Color"),
-            trailing: CircleAvatar(
-              backgroundColor: AppTheme().appAccentColor,
-              radius: 15,
-            ),
-            onTap: () {},
-          ),
-
           const Divider(),
-          _buildSectionHeader("Data Management"),
+          _buildSectionHeader("Data Management", colorScheme.primary),
           ListTile(
             leading: const Icon(Icons.backup),
             title: const Text("Backup Data"),
@@ -105,7 +102,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          const SizedBox(height: 6),
           ListTile(
             leading: Icon(Icons.restore),
             title: Text('Restore Data'),
@@ -120,13 +116,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
           ),
-
           const Divider(),
-          _buildSectionHeader("About"),
+          _buildSectionHeader("About", colorScheme.primary),
           ListTile(
             leading: Icon(Icons.info_outline),
             title: const Text("Version"),
-            trailing: Text("0.0.1"),
+            trailing: Text(
+              "Beta 0.0.8",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           ListTile(
             leading: Icon(Icons.dangerous, color: Colors.redAccent.shade200),
@@ -148,15 +149,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, Color color) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 12,
+        style: TextStyle(
+          color: color,
+          fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.blueAccent,
           letterSpacing: 1.2,
         ),
       ),
