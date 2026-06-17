@@ -13,9 +13,13 @@ class SpecialDay extends HiveObject {
   @HiveField(2)
   bool isLeave;
 
+  @HiveField(3)
+  String groupID;
+
   SpecialDay({
     required this.date,
     required this.reason,
     this.isLeave = true,
+    required this.groupID,
   });
 }

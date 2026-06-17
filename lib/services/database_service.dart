@@ -7,6 +7,7 @@ import '../models/lecture.dart';
 import '../models/subject.dart';
 import '../models/timetable.dart';
 import '../models/semester.dart';
+import '../models/special_day.dart';
 import '../models/DTO/draft.dart';
 //------------------------------------------------------------------------------
 
@@ -16,6 +17,7 @@ class DatabaseService {
   static late Box<TimetableEntry> timetableBox;
   static late Box<AttendanceCount> attendanceBox;
   static late Box<Semester> semesterBox;
+  static late Box<SpecialDay> specialDayBox;
   static late Box settingsBox;
 
   static Future<void> init() async {
@@ -25,8 +27,9 @@ class DatabaseService {
     Hive.registerAdapter(SubjectAdapter());
     Hive.registerAdapter(LectureAdapter());
     Hive.registerAdapter(TimetableEntryAdapter());
-    Hive.registerAdapter(AttendanceAdapter());
+    Hive.registerAdapter(AttendanceCountAdapter());
     Hive.registerAdapter(SemesterAdapter());
+    Hive.registerAdapter(SpecialDayAdapter());
 
     // Open Boxes
     settingsBox = await Hive.openBox('settingsBox');
@@ -35,6 +38,7 @@ class DatabaseService {
     timetableBox = await Hive.openBox<TimetableEntry>('timetable');
     attendanceBox = await Hive.openBox<AttendanceCount>('attendanceBox');
     semesterBox = await Hive.openBox<Semester>('semesters');
+    specialDayBox = await Hive.openBox<SpecialDay>('specialDay');
   }
 
 //
@@ -209,13 +213,17 @@ class DatabaseService {
     required DateTime end,
     required List<TimetableEntry> templates,
   }) async {
+    final Set<String> holidays = getHolidayDatesSet(true);
     final Map<String, Lecture> batch = {};
     DateTime processingDate = DateTime(start.year, start.month, start.day);
     final DateTime stopDate = DateTime(end.year, end.month, end.day);
 
     while (!processingDate.isAfter(stopDate)) {
       int weekday = processingDate.weekday;
+
       String dateString = DateFormat('yyyy-MM-dd').format(processingDate);
+      if (holidays.contains(dateString)) continue;
+
       final dayTemplates = templates.where((e) => e.dayOfWeek == weekday);
 
       for (var entry in dayTemplates) {
@@ -281,6 +289,16 @@ class DatabaseService {
         templates: newTimetableTemplates);
 
     if (batchData.isNotEmpty) await lectureBox.putAll(batchData);
+  }
+
+  static Future<void> deleteLecture(Lecture lecture) async {
+    if (lecture.status == 'Present' || lecture.status == 'Absent') {
+      await clearAttendance(lecture);
+    }
+    if (lecture.isInBox) {
+      //TODO : Refactor
+      await lecture.delete();
+    }
   }
 
 //
@@ -606,5 +624,82 @@ class DatabaseService {
     }
 
     return draft;
+  }
+
+//================================================================
+
+  static Future<void> addSpecialDayRange({
+    required String reason,
+    required bool isLeave,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    DateTime currentDay =
+        DateTime(startDate.year, startDate.month, startDate.day);
+    final DateTime normalizedEnd =
+        DateTime(endDate.year, endDate.month, endDate.day);
+
+    final String startKeyStr = DateFormat('yyyy-MM-dd').format(startDate);
+    final String endKeyStr = DateFormat('yyyy-MM-dd').format(endDate);
+
+    final int daysDiff = normalizedEnd.difference(currentDay).inDays;
+
+    final String customGroupId = "${startKeyStr}_${endKeyStr}_$daysDiff";
+
+    while (!currentDay.isAfter(normalizedEnd)) {
+      final String stringKey = DateFormat('yyyy-MM-dd').format(currentDay);
+
+      final dayRecord = SpecialDay(
+        date: currentDay,
+        reason: reason,
+        isLeave: isLeave,
+        groupID: customGroupId,
+      );
+      if (isLeave) {
+        final lecturesOnThisDay = lectureBox.values.where((lecture) {
+          return lecture.date.year == currentDay.year &&
+              lecture.date.month == currentDay.month &&
+              lecture.date.day == currentDay.day;
+        }).toList();
+
+        for (var lecture in lecturesOnThisDay) {
+          await deleteLecture(lecture);
+        }
+      }
+      await specialDayBox.put(stringKey, dayRecord);
+      currentDay = currentDay.add(const Duration(days: 1));
+    }
+  }
+
+  static Set<String> getHolidayDatesSet(bool onlyLeave) {
+    if (onlyLeave) {
+      return specialDayBox.values
+          .where(
+              (day) => day.isLeave) // Only care about actual lecture off-days
+          .map((day) => day.key.toString())
+          .toSet(); // Turns it into a high-performance hash Set
+    }
+    return specialDayBox.values.map((day) => day.key.toString()).toSet();
+  }
+
+  static SpecialDay? getSpecialDayDetails(DateTime selectedDate) {
+    final String stringKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    return specialDayBox
+        .get(stringKey); // Instant lookup by exact Key map address
+  }
+
+  static Future<void> deleteSpecialDayRange(String groupId) async {
+    if (groupId.isEmpty || !groupId.contains('_')) return;
+
+    final segments = groupId.split('_');
+    final DateTime startDate = DateFormat('yyyy-MM-dd').parse(segments[0]);
+    final DateTime endDate = DateFormat('yyyy-MM-dd').parse(segments[1]);
+
+    DateTime currentDay = startDate;
+    while (!currentDay.isAfter(endDate)) {
+      final String storageKey = DateFormat('yyyy-MM-dd').format(currentDay);
+      await specialDayBox.delete(storageKey);
+      currentDay = currentDay.add(const Duration(days: 1));
+    }
   }
 }

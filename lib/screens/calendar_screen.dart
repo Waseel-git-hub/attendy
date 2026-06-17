@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 //  MODELS
 import '../../models/lecture.dart';
 import '../../models/subject.dart';
@@ -261,6 +262,7 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
     );
   }
 
+  final Set<String> holidays = DatabaseService.getHolidayDatesSet(true);
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -304,7 +306,7 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
             // --- Calendar UI Overrides ---
             calendarStyle: CalendarStyle(
               outsideDaysVisible: false,
-              defaultTextStyle: const TextStyle(fontWeight: FontWeight.w400),
+              defaultTextStyle: TextStyle(fontWeight: FontWeight.w400),
               weekendTextStyle: TextStyle(
                   color: colorScheme.error.withOpacity(0.8),
                   fontWeight: FontWeight.w400),
@@ -377,7 +379,21 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
     final colorScheme = theme.colorScheme;
     final rawLectures = DatabaseService.getLectures(specificDate: date);
     final filteredLectures = _applyFilters(rawLectures);
-
+    if (holidays.contains(DateFormat('yyyy-MM-dd').format(date))) {
+      final holiday = DatabaseService.getSpecialDayDetails(date);
+      if (holiday!.isLeave) {
+        return Center(
+          child: Text(
+            'TODAY IS HOLIDAY',
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      }
+    }
     if (filteredLectures.isEmpty) {
       return Center(
         child: Text(

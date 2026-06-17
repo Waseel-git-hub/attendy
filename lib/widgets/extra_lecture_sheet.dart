@@ -2,17 +2,25 @@ import 'package:Attendy/screens/subject/add_subject_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-//  MODELS
+// MODELS
 import '../models/subject.dart';
-//  SERVICES
+import '../models/lecture.dart';
+// SERVICES
 import '../services/database_service.dart';
 //------------------------------------------------------------------------------
 
 class AddExtraLectureSheet extends StatefulWidget {
   final DateTime? initialDate;
   final dynamic subjectKey;
+  final Lecture?
+      lectureToEdit; // 👈 1. Pass the lecture down if we are in Edit Mode
 
-  const AddExtraLectureSheet({super.key, this.initialDate, this.subjectKey});
+  const AddExtraLectureSheet({
+    super.key,
+    this.initialDate,
+    this.subjectKey,
+    this.lectureToEdit,
+  });
 
   @override
   State<AddExtraLectureSheet> createState() => _AddExtraLectureSheetState();
@@ -26,18 +34,37 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
   dynamic _selectedSubjectId;
 
   final bool subjectAvailable = DatabaseService.subjectBox.isNotEmpty;
-  // Declared safely inside persistent State object memory space
   final TextEditingController _roomController = TextEditingController();
+
+  // 👈 2. Helper flag to keep code simple throughout the build method
+  bool get _isEditMode => widget.lectureToEdit != null;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = widget.initialDate ?? DateTime.now();
-    _selectedEndTime = TimeOfDay(
-      hour: _selectedStartTime.hour + 1,
-      minute: _selectedStartTime.minute,
-    );
-    _selectedSubjectId = widget.subjectKey;
+
+    if (_isEditMode) {
+      // 👈 3. Populate everything using the existing lecture parameters
+      final lecture = widget.lectureToEdit!;
+      _selectedDate = lecture.date;
+      _selectedStartTime =
+          TimeOfDay(hour: lecture.startHour, minute: lecture.startMinute);
+      _selectedEndTime =
+          TimeOfDay(hour: lecture.endHour, minute: lecture.endMinute);
+      _customEndTime = true;
+      _selectedSubjectId = lecture.subjectID;
+      _roomController.text =
+          lecture.roomNo == 'Not Specified' ? '' : lecture.roomNo;
+    } else {
+      // Pristine Add flow state
+      _selectedDate = widget.initialDate ?? DateTime.now();
+      _selectedStartTime = const TimeOfDay(hour: 9, minute: 0);
+      _selectedEndTime = TimeOfDay(
+        hour: _selectedStartTime.hour + 1,
+        minute: _selectedStartTime.minute,
+      );
+      _selectedSubjectId = widget.subjectKey;
+    }
   }
 
   @override
@@ -63,19 +90,24 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Header Title change depending on mode
+            Text(
+              _isEditMode ? "Edit Lecture" : "Add Extra Class",
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+
             // 1. SUBJECT DROPDOWN
             ValueListenableBuilder(
               valueListenable: DatabaseService.subjectBox.listenable(),
               builder: (context, Box<Subject> box, _) {
-                //TODO
                 if (box.values.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Text(
-                      //TODO
                       "No Subjects found!\nAdd Subject First",
                       textAlign: TextAlign.center,
-
                       style: TextStyle(
                         color: Color(0xFFEF4444),
                         fontSize: 24,
@@ -139,11 +171,14 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                       ),
                     );
                   }).toList(),
-                  onChanged: (dynamic val) {
-                    setState(() {
-                      _selectedSubjectId = val;
-                    });
-                  },
+                  onChanged: _isEditMode
+                      ? null
+                      : (dynamic val) {
+                          // 👈 Disable subject edits to keep cache safe
+                          setState(() {
+                            _selectedSubjectId = val;
+                          });
+                        },
                 );
               },
             ),
@@ -160,8 +195,8 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                     prefixIcon: const Icon(Icons.room),
                     labelText: "Room No.",
                     hintText: "101, 205, A-15",
-                    labelStyle: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                    labelStyle:
+                        TextStyle(color: theme.colorScheme.onSurfaceVariant),
                     filled: true,
                     fillColor: theme.colorScheme.surfaceContainerLowest,
                     border: OutlineInputBorder(
@@ -264,33 +299,64 @@ class _AddExtraLectureSheetState extends State<AddExtraLectureSheet> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => AddSubjectScreen()));
+                      return;
                     }
                     if (_selectedSubjectId == null) return;
 
                     String roomText = _roomController.text.trim().isEmpty
                         ? 'Not Specified'
                         : _roomController.text.trim();
+                    final String dateStr =
+                        DateFormat('yyyy-MM-dd').format(_selectedDate);
+                    final String newUID =
+                        "${dateStr}_${_selectedSubjectId}_${_selectedStartTime.hour}${_selectedStartTime.minute}";
 
-                    await DatabaseService.lectureInput(
-                      _selectedSubjectId,
-                      DatabaseService.getActiveSemesterId(),
-                      DateTime(_selectedDate.year, _selectedDate.month,
-                          _selectedDate.day),
-                      _selectedStartTime.hour,
-                      _selectedStartTime.minute,
-                      _selectedEndTime.hour,
-                      _selectedEndTime.minute,
-                      'Not Marked',
-                      roomText,
-                      isExtraClass: true,
-                    );
+                    if (_isEditMode) {
+                      final oldLecture = widget.lectureToEdit!;
+
+                      if (oldLecture.lectureUID != newUID) {
+                        await DatabaseService.deleteLecture(oldLecture);
+                      }
+
+                      // Overwrite with updated information preserving original attendance status
+                      await DatabaseService.lectureInput(
+                        _selectedSubjectId,
+                        oldLecture.semesterID,
+                        DateTime(_selectedDate.year, _selectedDate.month,
+                            _selectedDate.day),
+                        _selectedStartTime.hour,
+                        _selectedStartTime.minute,
+                        _selectedEndTime.hour,
+                        _selectedEndTime.minute,
+                        oldLecture.status, // Preserve status!
+                        roomText,
+                        isExtraClass: oldLecture.isExtraClass,
+                        lectureUID: newUID,
+                      );
+                    } else {
+                      // Standard Fresh Input Path
+                      await DatabaseService.lectureInput(
+                        _selectedSubjectId,
+                        DatabaseService.getActiveSemesterId(),
+                        DateTime(_selectedDate.year, _selectedDate.month,
+                            _selectedDate.day),
+                        _selectedStartTime.hour,
+                        _selectedStartTime.minute,
+                        _selectedEndTime.hour,
+                        _selectedEndTime.minute,
+                        'Not Marked',
+                        roomText,
+                        isExtraClass: true,
+                      );
+                    }
 
                     if (context.mounted) {
                       Navigator.pop(context, true);
                     }
                   },
-                  child:
-                      Text((subjectAvailable) ? "Save Lecture" : 'Add Subject'),
+                  child: Text(!subjectAvailable
+                      ? 'Add Subject'
+                      : (_isEditMode ? "Save Changes" : "Save Lecture")),
                 ),
               ],
             ),

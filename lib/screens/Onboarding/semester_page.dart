@@ -1,6 +1,9 @@
+import 'package:Attendy/screens/special_day_page.dart';
+import 'package:Attendy/services/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/DTO/draft.dart';
+import '../../widgets/special_day_input_sheet.dart';
 
 class OnboardingSemesterSetupScreen extends StatefulWidget {
   final SetupDraft setupDraft;
@@ -70,6 +73,10 @@ class _OnboardingSemesterSetupScreenState
     final hasDates = widget.setupDraft.startDate != null &&
         widget.setupDraft.endDate != null;
 
+    int noLectureDays =
+        DatabaseService.specialDayBox.values.where((i) => i.isLeave).length;
+    int totalSpecialDays = DatabaseService.specialDayBox.length;
+    int normalDays = totalSpecialDays - noLectureDays;
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
@@ -129,7 +136,7 @@ class _OnboardingSemesterSetupScreenState
                 },
                 onChanged: (val) => widget.setupDraft.semesterName = val.trim(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Date Range Selector Card
               Card(
@@ -146,19 +153,23 @@ class _OnboardingSemesterSetupScreenState
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.calendar_month_outlined,
-                              color: colorScheme.onSurfaceVariant),
-                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            color: colorScheme.onPrimaryContainer,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
                           Text(
                             'Semester Duration',
-                            style: theme.textTheme.titleMedium?.copyWith(
+                            style: TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: colorScheme.onSurface,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       if (hasDates) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -179,12 +190,12 @@ class _OnboardingSemesterSetupScreenState
                           'No active date limits defined yet.',
                           style: TextStyle(
                               color: colorScheme.error,
-                              fontSize: 13,
+                              fontSize: 12,
                               fontStyle: FontStyle.italic,
                               fontWeight: FontWeight.w500),
                         ),
                       ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -210,16 +221,170 @@ class _OnboardingSemesterSetupScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               _buildSubjectSummarySection(theme, colorScheme),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
 
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_month_rounded,
+                              color: colorScheme.onPrimaryContainer,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "Academic Calendar",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "$totalSpecialDays",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "$totalSpecialDays special days added",
+                      style: TextStyle(
+                          fontSize: 12, color: colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(16),
+                              border: BoxBorder.all(
+                                  color: colorScheme.outlineVariant),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  "$noLectureDays",
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.error),
+                                ),
+                                const SizedBox(height: 4),
+                                Text("No Lectures",
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorScheme.onSurfaceVariant)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(16),
+                              border: BoxBorder.all(
+                                  color: colorScheme.outlineVariant),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  "$normalDays",
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.onPrimaryContainer),
+                                ),
+                                const SizedBox(height: 4),
+                                Text("Normal Day",
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorScheme.onSurfaceVariant)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: colorScheme.primaryContainer,
+                          foregroundColor: colorScheme.onPrimaryContainer,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          side: BorderSide(color: colorScheme.outlineVariant),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      AcademicCalendarListPage(theme: theme)));
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Manage Academic Calendar",
+                                style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               // Continue Navigation Control
               SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {

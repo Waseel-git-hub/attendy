@@ -1,3 +1,4 @@
+import 'package:Attendy/widgets/special_day_input_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -99,7 +100,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 size: 24,
               ),
               onSelected: (String status) async {
-                // 1. Trigger the bulk update database execution with the selected choice
+                if (status == 'Cancelled') {
+                  showAddSpecialDaySheet(context, theme,
+                      inputDate: _selectedDate);
+                }
                 await DatabaseService.markAllLecturesForDate(
                   date: _selectedDate,
                   targetStatus: status,

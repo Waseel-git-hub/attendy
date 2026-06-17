@@ -1,3 +1,4 @@
+import 'package:Attendy/screens/lecture_info_page.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -40,7 +41,12 @@ class LectureCard extends StatelessWidget {
             ? "Can skip ${-skippable} lecture"
             : "Have to attend";
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => LectureInfoPage(lecture: lecture)));
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
