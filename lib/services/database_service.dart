@@ -672,14 +672,13 @@ class DatabaseService {
   }
 
   static Set<String> getHolidayDatesSet(bool onlyLeave) {
+    Iterable<SpecialDay> query = specialDayBox.values;
     if (onlyLeave) {
-      return specialDayBox.values
-          .where(
-              (day) => day.isLeave) // Only care about actual lecture off-days
-          .map((day) => day.key.toString())
-          .toSet(); // Turns it into a high-performance hash Set
+      query = query.where((day) => day.isLeave);
     }
-    return specialDayBox.values.map((day) => day.key.toString()).toSet();
+    return query
+        .map((day) => DateFormat('yyyy-MM-dd').format(day.date))
+        .toSet();
   }
 
   static SpecialDay? getSpecialDayDetails(DateTime selectedDate) {
@@ -700,6 +699,18 @@ class DatabaseService {
       final String storageKey = DateFormat('yyyy-MM-dd').format(currentDay);
       await specialDayBox.delete(storageKey);
       currentDay = currentDay.add(const Duration(days: 1));
+    }
+    final templates = timetableBox.values.toList();
+
+    // Re-builds the lecture skeletons for this date range since it's no longer a holiday
+    final restoredBatch = await _buildLectureBatch(
+      start: startDate,
+      end: endDate,
+      templates: templates,
+    );
+
+    if (restoredBatch.isNotEmpty) {
+      await lectureBox.putAll(restoredBatch);
     }
   }
 }

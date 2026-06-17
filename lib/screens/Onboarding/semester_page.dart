@@ -3,7 +3,6 @@ import 'package:Attendy/services/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/DTO/draft.dart';
-import '../../widgets/special_day_input_sheet.dart';
 
 class OnboardingSemesterSetupScreen extends StatefulWidget {
   final SetupDraft setupDraft;
