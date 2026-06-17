@@ -8,7 +8,7 @@ import '../models/subject.dart';
 import '../models/timetable.dart';
 import '../models/semester.dart';
 import '../models/special_day.dart';
-import '../models/DTO/draft.dart';
+import '../models/draft.dart';
 //------------------------------------------------------------------------------
 
 class DatabaseService {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/DTO/draft.dart';
+import '../../models/draft.dart';
 import '../../screens/subject/add_subject_screen.dart';
 
 class OnboardingSubjectsSetupScreen extends StatefulWidget {

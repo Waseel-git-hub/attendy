@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/DTO/draft.dart';
+import '../../models/draft.dart';
 import '../../services/database_service.dart';
 import '../../screens/router.dart';
 import '../Onboarding/semester_page.dart';

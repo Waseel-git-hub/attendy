@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 //  MODELS
 import '../../models/subject.dart';
-import '../../models/DTO/draft.dart';
+import '../../models/draft.dart';
 //  SERVICES
 import '../../services/database_service.dart';
 //------------------------------------------------------------
